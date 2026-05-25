@@ -514,11 +514,21 @@ class Database:
         self.save()
 
 
+def get_bookmaker_total_balance():
+    """Sumuje salda ze wszystkich zarejestrowanych kont bukmacherskich."""
+    accounts = db.get("accounts", {})
+    total = sum(a.get("balance", 0) for a in accounts.values() if a.get("status") == "active")
+    return total
+
 def get_active_bankroll():
-    """Zwraca aktywny bankroll (demo lub realny)."""
+    """Zwraca aktywny bankroll (demo lub realny) z uwzględnieniem kont BK."""
     mode = db.get("account_mode", "demo")
     if mode == "real":
-        return db.get("real_bankroll", db.get("bankroll", {}))
+        bk = db.get("real_bankroll", db.get("bankroll", {}))
+        bk = dict(bk)
+        bk["bookmaker_balances"] = get_bookmaker_total_balance()
+        bk["total_balance"] = round(bk.get("balance", 0) + bk["bookmaker_balances"], 2)
+        return bk
     return db.get("demo_bankroll", db.get("bankroll", {}))
 
 def update_bankroll(updates):
@@ -526,7 +536,9 @@ def update_bankroll(updates):
     mode = db.get("account_mode", "demo")
     key = "real_bankroll" if mode == "real" else "demo_bankroll"
     bk = db.get(key, bankroll_default())
-    bk.update(updates)
+    # Remove computed keys that shouldn't be persisted
+    updates_clean = {k: v for k, v in updates.items() if k not in ("bookmaker_balances", "total_balance", "total_with_bookmakers", "bookmaker_balance", "current_balance", "total_change", "total_change_pct", "total_bets", "roi", "win_rate", "account_mode")}
+    bk.update(updates_clean)
     db.set(key, bk)
     return bk
 
@@ -2119,13 +2131,16 @@ def api_bankroll():
     mode = db.get("account_mode", "demo")
     s = db.get("statistics",{})
     cur = bk.get("balance",0); init = bk.get("initial_balance",0)
+    bk_total = bk.get("bookmaker_balances", 0)
+    total_with_bk = bk.get("total_balance", cur)
     return jsonify({"success":True,"bankroll":{
         **bk, "current_balance": cur, "initial_balance": init,
         "total_change": round(cur-init,2),
         "total_change_pct": round(((cur-init)/init)*100,2) if init>0 else 0,
         "total_bets": s.get("total_bets",0), "roi": s.get("roi",0),
         "win_rate": round((s.get("won_bets",0)/max(s.get("total_bets",0),1))*100,1),
-        "account_mode": mode,
+        "account_mode": mode, "total_with_bookmakers": total_with_bk,
+        "bookmaker_balance": bk_total,
     }})
 
 @app.route("/api/bankroll/deposit", methods=["POST"])

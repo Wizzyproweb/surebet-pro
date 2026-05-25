@@ -395,35 +395,36 @@ async function fetchSports() {
 async function quickSwitchMode() {
   const newMode = accountMode === 'demo' ? 'real' : 'demo';
   try {
-    // First transfer balance if needed
-    if (newMode === 'real' && demoBalance > 0) {
-      // Transfer all demo to real
-      await API.post('/api/account/transfer', { amount: demoBalance, direction: 'demo_to_real' });
-    } else if (newMode === 'demo' && realBalance > 0) {
-      // Transfer all real back to demo
-      await API.post('/api/account/transfer', { amount: realBalance, direction: 'real_to_demo' });
-    }
-    
     const r = await API.post('/api/account/switch', { mode: newMode });
     if (r.success) {
       accountMode = r.mode;
+      demoBalance = r.demo_balance;
+      realBalance = r.real_balance;
       const btn = document.getElementById('modeToggleBtn');
       if (btn) {
         btn.textContent = r.mode === 'demo' ? '🎮' : '💵';
-        btn.title = r.mode === 'demo' ? 'Kliknij aby przełączyć na REAL' : 'Kliknij aby przełączyć na DEMO';
+        btn.title = r.mode === 'demo' ? 'Przełącz na REAL' : 'Przełącz na DEMO';
       }
-      // Update mode display
       const modeDisplay = document.getElementById('accountModeDisplay');
       if (modeDisplay) modeDisplay.textContent = r.mode === 'demo' ? '🎮 DEMO' : '💵 REAL';
+      const acctBadge = document.getElementById('accountBadge');
+      if (acctBadge) {
+        acctBadge.textContent = r.mode === 'demo' ? 'DEMO' : 'REAL';
+        acctBadge.style.display = 'inline';
+      }
       await fetchAllData();
-      toast(`Tryb: ${r.mode === 'demo' ? 'DEMO 🎮' : 'REAL 💵'}`, 'success', 2000);
+      if (typeof PAGES !== 'undefined' && PAGES[currentPage]) {
+        const area = document.getElementById('contentArea');
+        PAGES[currentPage].render(area);
+      }
+      toast('Tryb: ' + (r.mode === 'demo' ? '🎮 DEMO' : '💵 REAL'), 'success', 2000);
     }
-  } catch(e) { toast('Błąd przełączania', 'error'); }
+  } catch(e) { toast('Błąd przełączania: ' + e.message, 'error'); }
 }
 
 async function checkAccountMode() {
   try {
-    const r = await API.post('/api/account/status');
+    const r = await API.get('/api/account/status');
     if (r.success) {
       accountMode = r.mode;
       demoBalance = r.demo_balance;

@@ -31,14 +31,34 @@
     </div>
     
     <div class="sidebar-nav">
-      <div class="nav-section">📊 Główne</div>
+      <div class="nav-section">📊 Pulpit</div>
       <a class="nav-item active" data-page="dashboard" onclick="navigate('dashboard')">
         <span class="nav-icon">🏠</span> Dashboard
       </a>
       <a class="nav-item" data-page="surebets" onclick="navigate('surebets')">
-        <span class="nav-icon">🔍</span> Surebety
+        <span class="nav-icon">🎯</span> Surebety
         <span class="nav-badge" id="surebetBadge">0</span>
       </a>
+      <a class="nav-item" data-page="bankroll" onclick="navigate('bankroll')">
+        <span class="nav-icon">💰</span> Portfel
+        <span class="nav-badge" id="accountBadge" style="display:none">DEMO</span>
+      </a>
+
+      <div class="nav-section">💳 Finanse</div>
+      <a class="nav-item" data-page="deposit" onclick="navigate('deposit')">
+        <span class="nav-icon">💳</span> Wpłata
+      </a>
+      <a class="nav-item" data-page="withdraw" onclick="navigate('withdraw')">
+        <span class="nav-icon">💸</span> Wypłata
+      </a>
+      <a class="nav-item" data-page="transactions" onclick="navigate('transactions')">
+        <span class="nav-icon">📋</span> Transakcje
+      </a>
+      <a class="nav-item" data-page="investments" onclick="navigate('investments')">
+        <span class="nav-icon">📈</span> Inwestycje
+      </a>
+
+      <div class="nav-section">🎲 Zakłady</div>
       <a class="nav-item" data-page="valuebets" onclick="navigate('valuebets')">
         <span class="nav-icon">💎</span> Value Bety
         <span class="nav-badge" id="valueBadge" style="display:none">0</span>
@@ -46,8 +66,28 @@
       <a class="nav-item" data-page="multimarket" onclick="navigate('multimarket')">
         <span class="nav-icon">📊</span> Multi-Rynek
       </a>
+      <a class="nav-item" data-page="betslip" onclick="navigate('betslip')">
+        <span class="nav-icon">🧾</span> Kupon
+      </a>
+      <a class="nav-item" data-page="history" onclick="navigate('history')">
+        <span class="nav-icon">📜</span> Historia zakładów
+      </a>
 
-      <div class="nav-section">🧮 Narzędzia</div>
+      <div class="nav-section">🤖 Automatyzacja</div>
+      <a class="nav-item" data-page="autobet" onclick="navigate('autobet')">
+        <span class="nav-icon">🤖</span> Auto-Bet
+      </a>
+      <a class="nav-item" data-page="register" onclick="navigate('register')">
+        <span class="nav-icon">📝</span> Rejestracja u BK
+      </a>
+      <a class="nav-item" data-page="accounts" onclick="navigate('accounts')">
+        <span class="nav-icon">👤</span> Moje konta BK
+      </a>
+
+      <div class="nav-section">🛠 Narzędzia</div>
+      <a class="nav-item" data-page="bookmakers" onclick="navigate('bookmakers')">
+        <span class="nav-icon">🏢</span> Bukmacherzy
+      </a>
       <a class="nav-item" data-page="calculator" onclick="navigate('calculator')">
         <span class="nav-icon">🧮</span> Kalkulatory
       </a>
@@ -57,63 +97,25 @@
       <a class="nav-item" data-page="backtest" onclick="navigate('backtest')">
         <span class="nav-icon">📈</span> Backtesting
       </a>
+
+      <div class="nav-section">📊 Statystyki</div>
+      <a class="nav-item" data-page="statistics" onclick="navigate('statistics')">
+        <span class="nav-icon">📊</span> Statystyki
+      </a>
       <a class="nav-item" data-page="oddslive" onclick="navigate('oddslive')">
         <span class="nav-icon">📡</span> Rynek na żywo
-      </a>
-
-      <div class="nav-section">🤖 Automatyzacja</div>
-      <a class="nav-item" data-page="autobet" onclick="navigate('autobet')">
-        <span class="nav-icon">🤖</span> Auto-Bet
-      </a>
-      <a class="nav-item" data-page="register" onclick="navigate('register')">
-        <span class="nav-icon">📝</span> Rejestracja kont
-      </a>
-
-      <div class="nav-section">🏢 Zarządzanie</div>
-      <a class="nav-item" data-page="bookmakers" onclick="navigate('bookmakers')">
-        <span class="nav-icon">🏢</span> Bukmacherzy
-      </a>
-      <a class="nav-item" data-page="accounts" onclick="navigate('accounts')">
-        <span class="nav-icon">👤</span> Konta
-      </a>
-      <a class="nav-item" data-page="account" onclick="navigate('account')">
-        <span class="nav-icon">👤</span> Konto
-        <span class="nav-badge" id="accountBadge" style="display:none">DEMO</span>
-      </a>
-      <a class="nav-item" data-page="bankroll" onclick="navigate('bankroll')">
-        <span class="nav-icon">💰</span> Bankroll
-      </a>
-      <a class="nav-item" data-page="transactions" onclick="navigate('transactions')">
-        <span class="nav-icon">📊</span> Transakcje
       </a>
       <a class="nav-item" data-page="verification" onclick="navigate('verification')">
         <span class="nav-icon">✅</span> Weryfikacja
       </a>
-      <a class="nav-item" data-page="deposit" onclick="navigate('deposit')">
-        <span class="nav-icon">💳</span> Wpłata
-      </a>
-      <a class="nav-item" data-page="investments" onclick="navigate('investments')">
-        <span class="nav-icon">📈</span> Inwestycje
-      </a>
-      <a class="nav-item" data-page="withdraw" onclick="navigate('withdraw')">
-        <span class="nav-icon">💸</span> Wypłata
-      </a>
-      <a class="nav-item" data-page="betslip" onclick="navigate('betslip')">
-        <span class="nav-icon">📋</span> Kupon
-      </a>
 
-      <div class="nav-section">📈 Historia</div>
-      <a class="nav-item" data-page="statistics" onclick="navigate('statistics')">
-        <span class="nav-icon">📊</span> Statystyki
-      </a>
-      <a class="nav-item" data-page="history" onclick="navigate('history')">
-        <span class="nav-icon">📋</span> Historia
-      </a>
-
-      <div class="nav-section">🔔 System</div>
+      <div class="nav-section">⚙️ System</div>
       <a class="nav-item" data-page="notifications" onclick="navigate('notifications')">
         <span class="nav-icon">🔔</span> Powiadomienia
         <span class="nav-badge" id="notifBadge">0</span>
+      </a>
+      <a class="nav-item" data-page="account" onclick="navigate('account')">
+        <span class="nav-icon">👤</span> Moje konto
       </a>
       <a class="nav-item" data-page="settings" onclick="navigate('settings')">
         <span class="nav-icon">⚙️</span> Ustawienia
