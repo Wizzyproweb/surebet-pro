@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  surebet-pro:
+    build: .
+    container_name: surebet-pro
+    ports:
+      - "80:80"
+    restart: unless-stopped
+    environment:
+      - TZ=Europe/Warsaw
+    volumes:
+      - ./data:/app/data

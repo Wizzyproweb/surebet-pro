@@ -1,0 +1,158 @@
+{
+  "piłka nożna": {
+    "Ekstraklasa": [
+      [
+        "Jagiellonia Białystok",
+        "Śląsk Wrocław"
+      ],
+      [
+        "Legia Warszawa",
+        "Lech Poznań"
+      ],
+      [
+        "Raków Częstochowa",
+        "Pogoń Szczecin"
+      ],
+      [
+        "Górnik Zabrze",
+        "Widzew Łódź"
+      ],
+      [
+        "Cracovia",
+        "Wisła Kraków"
+      ],
+      [
+        "Zagłębie Lubin",
+        "Radomiak Radom"
+      ],
+      [
+        "Stal Mielec",
+        "Korona Kielce"
+      ],
+      [
+        "Piast Gliwice",
+        "Lechia Gdańsk"
+      ]
+    ],
+    "Premier League": [
+      [
+        "Manchester City",
+        "Arsenal"
+      ],
+      [
+        "Liverpool",
+        "Manchester United"
+      ],
+      [
+        "Chelsea",
+        "Tottenham"
+      ],
+      [
+        "Aston Villa",
+        "Newcastle"
+      ]
+    ],
+    "La Liga": [
+      [
+        "Real Madrid",
+        "Barcelona"
+      ],
+      [
+        "Atlético Madrid",
+        "Sevilla"
+      ]
+    ],
+    "Liga Mistrzów": [
+      [
+        "Bayern Monachium",
+        "Paris SG"
+      ],
+      [
+        "Inter Mediolan",
+        "Benfica"
+      ]
+    ]
+  },
+  "koszykówka": {
+    "NBA": [
+      [
+        "Boston Celtics",
+        "LA Lakers"
+      ],
+      [
+        "Golden State Warriors",
+        "Miami Heat"
+      ],
+      [
+        "Milwaukee Bucks",
+        "Denver Nuggets"
+      ]
+    ],
+    "EuroLeague": [
+      [
+        "Real Madryt",
+        "Panathinaikos"
+      ],
+      [
+        "Fenerbahçe",
+        "Olympiacos"
+      ]
+    ]
+  },
+  "tenis": {
+    "ATP Tour": [
+      [
+        "Iga Świątek",
+        "Aryna Sabalenka"
+      ],
+      [
+        "Novak Djoković",
+        "Carlos Alcaraz"
+      ],
+      [
+        "Jannik Sinner",
+        "Daniil Medvedev"
+      ]
+    ]
+  },
+  "siatkówka": {
+    "PlusLiga": [
+      [
+        "Jastrzębski Węgiel",
+        "ZAKSA Kędzierzyn-Koźle"
+      ],
+      [
+        "PGE Skra Bełchatów",
+        "Asseco Resovia"
+      ],
+      [
+        "Trefl Gdańsk",
+        "Projekt Warszawa"
+      ]
+    ]
+  },
+  "hokej": {
+    "NHL": [
+      [
+        "Edmonton Oilers",
+        "Toronto Maple Leafs"
+      ],
+      [
+        "Colorado Avalanche",
+        "Dallas Stars"
+      ]
+    ]
+  },
+  "piłka ręczna": {
+    "PGNiG Superliga": [
+      [
+        "Industria Kielce",
+        "Wisła Płock"
+      ],
+      [
+        "Górnik Zabrze",
+        "Zagłębie Lubin"
+      ]
+    ]
+  }
+}

@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="pl" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#0a0e17">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="description" content="SureBet Pro v5 — znajdowanie surebetów, value betting, Kelly Criterion, automatyczne obstawianie">
+<meta name="apple-mobile-web-app-title" content="SureBet Pro">
+<meta property="og:title" content="SureBet Pro v5">
+<meta property="og:description" content="Najlepsza aplikacja do surebetów na telefon z zaawansowanymi funkcjami">
+<meta name="application-name" content="SureBet Pro">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/static/icons/icon-192.png">
+<link rel="apple-touch-startup-image" href="/static/icons/icon-512.png">
+<title>SureBet Pro v5</title>
+<link rel="stylesheet" href="/static/css/style.css">
+  <script src="https://js.stripe.com/v3/"></script>
+</head>
+<body>
+<div id="app">
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="logo-icon">🎯</div>
+      <div class="logo-text">SureBet Pro</div>
+      <div class="version-badge">v5.0</div>
+    </div>
+    
+    <div class="sidebar-nav">
+      <div class="nav-section">📊 Główne</div>
+      <a class="nav-item active" data-page="dashboard" onclick="navigate('dashboard')">
+        <span class="nav-icon">🏠</span> Dashboard
+      </a>
+      <a class="nav-item" data-page="surebets" onclick="navigate('surebets')">
+        <span class="nav-icon">🔍</span> Surebety
+        <span class="nav-badge" id="surebetBadge">0</span>
+      </a>
+      <a class="nav-item" data-page="valuebets" onclick="navigate('valuebets')">
+        <span class="nav-icon">💎</span> Value Bety
+        <span class="nav-badge" id="valueBadge" style="display:none">0</span>
+      </a>
+      <a class="nav-item" data-page="multimarket" onclick="navigate('multimarket')">
+        <span class="nav-icon">📊</span> Multi-Rynek
+      </a>
+
+      <div class="nav-section">🧮 Narzędzia</div>
+      <a class="nav-item" data-page="calculator" onclick="navigate('calculator')">
+        <span class="nav-icon">🧮</span> Kalkulatory
+      </a>
+      <a class="nav-item" data-page="margins" onclick="navigate('margins')">
+        <span class="nav-icon">📉</span> Analiza marż
+      </a>
+      <a class="nav-item" data-page="backtest" onclick="navigate('backtest')">
+        <span class="nav-icon">📈</span> Backtesting
+      </a>
+      <a class="nav-item" data-page="oddslive" onclick="navigate('oddslive')">
+        <span class="nav-icon">📡</span> Rynek na żywo
+      </a>
+
+      <div class="nav-section">🤖 Automatyzacja</div>
+      <a class="nav-item" data-page="autobet" onclick="navigate('autobet')">
+        <span class="nav-icon">🤖</span> Auto-Bet
+      </a>
+      <a class="nav-item" data-page="register" onclick="navigate('register')">
+        <span class="nav-icon">📝</span> Rejestracja kont
+      </a>
+
+      <div class="nav-section">🏢 Zarządzanie</div>
+      <a class="nav-item" data-page="bookmakers" onclick="navigate('bookmakers')">
+        <span class="nav-icon">🏢</span> Bukmacherzy
+      </a>
+      <a class="nav-item" data-page="accounts" onclick="navigate('accounts')">
+        <span class="nav-icon">👤</span> Konta
+      </a>
+      <a class="nav-item" data-page="account" onclick="navigate('account')">
+        <span class="nav-icon">👤</span> Konto
+        <span class="nav-badge" id="accountBadge" style="display:none">DEMO</span>
+      </a>
+      <a class="nav-item" data-page="bankroll" onclick="navigate('bankroll')">
+        <span class="nav-icon">💰</span> Bankroll
+      </a>
+      <a class="nav-item" data-page="transactions" onclick="navigate('transactions')">
+        <span class="nav-icon">📊</span> Transakcje
+      </a>
+      <a class="nav-item" data-page="verification" onclick="navigate('verification')">
+        <span class="nav-icon">✅</span> Weryfikacja
+      </a>
+      <a class="nav-item" data-page="deposit" onclick="navigate('deposit')">
+        <span class="nav-icon">💳</span> Wpłata
+      </a>
+      <a class="nav-item" data-page="investments" onclick="navigate('investments')">
+        <span class="nav-icon">📈</span> Inwestycje
+      </a>
+      <a class="nav-item" data-page="withdraw" onclick="navigate('withdraw')">
+        <span class="nav-icon">💸</span> Wypłata
+      </a>
+      <a class="nav-item" data-page="betslip" onclick="navigate('betslip')">
+        <span class="nav-icon">📋</span> Kupon
+      </a>
+
+      <div class="nav-section">📈 Historia</div>
+      <a class="nav-item" data-page="statistics" onclick="navigate('statistics')">
+        <span class="nav-icon">📊</span> Statystyki
+      </a>
+      <a class="nav-item" data-page="history" onclick="navigate('history')">
+        <span class="nav-icon">📋</span> Historia
+      </a>
+
+      <div class="nav-section">🔔 System</div>
+      <a class="nav-item" data-page="notifications" onclick="navigate('notifications')">
+        <span class="nav-icon">🔔</span> Powiadomienia
+        <span class="nav-badge" id="notifBadge">0</span>
+      </a>
+      <a class="nav-item" data-page="settings" onclick="navigate('settings')">
+        <span class="nav-icon">⚙️</span> Ustawienia
+      </a>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="connection-status">
+        <span class="status-dot offline"></span>
+        <span>Status: <span id="serverStatus">Ładowanie...</span></span>
+      <div style="margin-top:6px;display:flex;align-items:center;gap:8px;font-size:12px">
+        <span>Tryb:</span>
+        <span id="accountModeDisplay" style="font-weight:700;padding:2px 10px;border-radius:8px;background:var(--primary-glow);color:var(--primary)">🎮 DEMO</span>
+        <button class="btn-icon" style="width:28px;height:28px;font-size:12px" onclick="quickSwitchMode()" title="Przełącz">🔄</button>
+      </div>
+      </div>
+      <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:center;padding:4px 0">
+        <button style="font-size:16px;cursor:pointer;background:none;border:none" onclick="setTheme('dark')" title="Ciemny">🌙</button>
+        <button style="font-size:16px;cursor:pointer;background:none;border:none" onclick="setTheme('light')" title="Jasny">☀️</button>
+        <button style="font-size:16px;cursor:pointer;background:none;border:none" onclick="setTheme('professional')" title="Profesjonalny">💼</button>
+        <button style="font-size:16px;cursor:pointer;background:none;border:none" onclick="setTheme('ocean')" title="Ocean">🌊</button>
+        <button style="font-size:16px;cursor:pointer;background:none;border:none" onclick="setTheme('neon')" title="Neon">💚</button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- OVERLAY -->
+  <div class="sidebar-overlay" onclick="closeSidebar()"></div>
+
+  <!-- MAIN -->
+  <main class="main-content">
+    <header class="top-bar">
+      <button class="hamburger" onclick="toggleSidebar()">☰</button>
+      <div class="top-bar-title" id="pageTitle">Dashboard</div>
+      <div class="top-bar-actions">
+        <button class="btn-icon" onclick="fetchAllData();toast('Odświeżono','success',1000)" title="Odśwież">🔄</button>
+        <button class="btn-icon" onclick="navigate('notifications')" title="Powiadomienia">🔔</button>
+        <button class="btn-icon" id="modeToggleBtn" onclick="quickSwitchMode()" title="Przełącz DEMO/REAL">🎮</button>
+        <button class="btn-icon" onclick="navigate('settings')" title="Ustawienia">⚙️</button>
+      </div>
+    </header>
+
+    <div class="content-area" id="contentArea">
+      <div class="loading">
+        <div class="spinner"></div>
+        <div style="margin-top:16px;color:var(--text-secondary)">🎯 Ładowanie SureBet Pro v5...</div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- TOASTS -->
+<div id="toasts" class="toast-container"></div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-content" id="modalContent"></div>
+</div>
+
+<script src="/static/js/app.js"></script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/service-worker.js')
+      .then(() => console.log('[SW] Registered'))
+      .catch(() => console.log('[SW] Not registered'));
+  });
+}
+</script>
+</body>
+</html>

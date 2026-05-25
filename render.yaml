@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: surebet-pro
+    env: python
+    region: frankfurt
+    plan: free
+    buildCommand: bash render-build.sh
+    startCommand: gunicorn wsgi:application --bind 0.0.0.0:$PORT --workers 1 --threads 4 --worker-class gthread --timeout 120 --max-requests 10000 --log-level info
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.0
+      - key: PORT
+        value: 10000
+      - key: THEODDSAPI_KEY
+        sync: false
+      - key: ADMIN_EMAIL
+        value: wizzyeazy7@gmail.com
+      - key: ADMIN_PASSWORD
+        sync: false
