@@ -187,6 +187,119 @@ function closeModal() {
   document.getElementById('modalOverlay').classList.remove('open');
 }
 
+// ═══ User Menu ═══
+function toggleUserMenu() {
+  document.getElementById('userDropdown').classList.toggle('open');
+}
+function closeUserMenu() {
+  document.getElementById('userDropdown').classList.remove('open');
+}
+
+function showLoginModal() {
+  closeUserMenu();
+  openModal(`
+    <div class="modal-header"><h3>🔑 Logowanie</h3>
+      <button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div style="padding:16px">
+      <div class="form-group"><label>Email lub login</label>
+        <input class="form-input" id="modalLoginUser" placeholder="wizzyeazy7@gmail.com"></div>
+      <div class="form-group"><label>Hasło</label>
+        <input class="form-input" id="modalLoginPass" type="password" placeholder="••••••"></div>
+      <button class="btn btn-primary btn-lg btn-block" onclick="modalLogin()">🔑 Zaloguj</button>
+      <div style="margin-top:12px;text-align:center;font-size:12px;color:var(--text-muted)">
+        Nie masz konta? <a href="#" onclick="closeModal();showRegisterModal()" style="color:var(--primary)">Zarejestruj się</a>
+      </div>
+    </div>`);
+}
+
+async function modalLogin() {
+  const u = document.getElementById('modalLoginUser')?.value?.trim();
+  const p = document.getElementById('modalLoginPass')?.value?.trim();
+  if (!u || !p) { toast('Podaj login i hasło', 'error'); return; }
+  try {
+    const r = await API.post('/api/auth/login', {username: u, password: p});
+    if (r.success) {
+      currentUser = u;
+      localStorage.setItem('sb-user', u);
+      closeModal();
+      updateUserMenu();
+      await fetchAllData();
+      toast(`👤 Zalogowano jako ${u}`, 'success');
+    } else toast(`❌ ${r.error}`, 'error');
+  } catch(e) { toast('Błąd serwera', 'error'); }
+}
+
+function showRegisterModal() {
+  closeUserMenu();
+  openModal(`
+    <div class="modal-header"><h3>📝 Rejestracja</h3>
+      <button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div style="padding:16px">
+      <div class="form-group"><label>Email</label>
+        <input class="form-input" id="modalRegEmail" placeholder="email@example.com"></div>
+      <div class="form-group"><label>Login</label>
+        <input class="form-input" id="modalRegUser" placeholder="mojlogin"></div>
+      <div class="form-group"><label>Hasło</label>
+        <input class="form-input" id="modalRegPass" type="password" placeholder="min. 6 znaków"></div>
+      <div class="form-group"><label>Imię</label>
+        <input class="form-input" id="modalRegName" placeholder="Jan"></div>
+      <button class="btn btn-success btn-lg btn-block" onclick="modalRegister()">📝 Zarejestruj</button>
+      <div style="margin-top:12px;text-align:center;font-size:12px;color:var(--text-muted)">
+        Masz już konto? <a href="#" onclick="closeModal();showLoginModal()" style="color:var(--primary)">Zaloguj się</a>
+      </div>
+    </div>`);
+}
+
+async function modalRegister() {
+  const email = document.getElementById('modalRegEmail')?.value?.trim();
+  const user = document.getElementById('modalRegUser')?.value?.trim();
+  const pass = document.getElementById('modalRegPass')?.value?.trim();
+  const name = document.getElementById('modalRegName')?.value?.trim();
+  if (!email || !user || !pass) { toast('Wypełnij wymagane pola', 'error'); return; }
+  if (pass.length < 6) { toast('Hasło musi mieć min. 6 znaków', 'error'); return; }
+  try {
+    const r = await API.post('/api/auth/register', {username: user, password: pass, email});
+    if (r.success) {
+      closeModal();
+      toast(`✅ Konto ${user} utworzone! Możesz się zalogować.`, 'success', 4000);
+    } else toast(`❌ ${r.error}`, 'error');
+  } catch(e) { toast('Błąd serwera', 'error'); }
+}
+
+function updateUserMenu() {
+  const header = document.getElementById('userDisplayName');
+  const emailEl = document.getElementById('userDisplayEmail');
+  const loginBtn = document.getElementById('userLoginBtn');
+  const registerBtn = document.getElementById('userRegisterBtn');
+  const dashboardLink = document.getElementById('userDashboardLink');
+  const depositLink = document.getElementById('userDepositLink');
+  const logoutDivider = document.getElementById('userLogoutDivider');
+  const logoutBtn = document.getElementById('userLogoutBtn');
+  const menuBtn = document.getElementById('userMenuBtn');
+  
+  if (currentUser) {
+    header.textContent = currentUser;
+    emailEl.textContent = 'Zalogowany';
+    loginBtn.style.display = 'none';
+    registerBtn.style.display = 'none';
+    dashboardLink.style.display = 'flex';
+    depositLink.style.display = 'flex';
+    logoutDivider.style.display = 'block';
+    logoutBtn.style.display = 'flex';
+    if (menuBtn) menuBtn.textContent = '👤';
+  } else {
+    header.textContent = 'Gość';
+    emailEl.textContent = 'Nie zalogowany';
+    loginBtn.style.display = 'flex';
+    registerBtn.style.display = 'flex';
+    dashboardLink.style.display = 'none';
+    depositLink.style.display = 'none';
+    logoutDivider.style.display = 'none';
+    logoutBtn.style.display = 'none';
+    if (menuBtn) menuBtn.textContent = '👤';
+  }
+}
+
 // ═══ Data Fetching ═══════════════════════════════════════════════════
 
 async function fetchAllData() {
@@ -282,6 +395,15 @@ async function fetchSports() {
 async function quickSwitchMode() {
   const newMode = accountMode === 'demo' ? 'real' : 'demo';
   try {
+    // First transfer balance if needed
+    if (newMode === 'real' && demoBalance > 0) {
+      // Transfer all demo to real
+      await API.post('/api/account/transfer', { amount: demoBalance, direction: 'demo_to_real' });
+    } else if (newMode === 'demo' && realBalance > 0) {
+      // Transfer all real back to demo
+      await API.post('/api/account/transfer', { amount: realBalance, direction: 'real_to_demo' });
+    }
+    
     const r = await API.post('/api/account/switch', { mode: newMode });
     if (r.success) {
       accountMode = r.mode;
@@ -380,6 +502,7 @@ async function init() {
   
   await Promise.all([fetchAllData(), fetchBets(), fetchAccounts(), fetchSports(), fetchValueBets(), fetchMultiMarket()]);
   await checkAccountMode();
+  updateUserMenu();
   navigate('dashboard');
   
   updateTimer = setInterval(fetchAllData, 10000);
@@ -1822,15 +1945,20 @@ async function login() {
   if (!u || !p) { toast('Podaj login i hasło', 'error'); return; }
   try {
     const r = await API.post('/api/auth/login', {username: u, password: p});
-    if (r.success) { currentUser = u; localStorage.setItem('sb-user', u); toast(`👤 Zalogowano jako ${u}`, 'success'); renderSettings(document.getElementById('contentArea')); }
+    if (r.success) { currentUser = u; localStorage.setItem('sb-user', u); updateUserMenu(); toast(`👤 Zalogowano jako ${u}`, 'success'); renderSettings(document.getElementById('contentArea')); }
     else toast(`❌ ${r.error}`, 'error');
   } catch(e) { toast('Błąd', 'error'); }
 }
 
 function logout() {
   currentUser = null; localStorage.removeItem('sb-user');
+  updateUserMenu(); closeUserMenu();
   toast('Wylogowano', 'info');
-  renderSettings(document.getElementById('contentArea'));
+  if (document.getElementById('contentArea')) {
+    const page = currentPage;
+    if (PAGES[page]) PAGES[page].render(document.getElementById('contentArea'));
+    else navigate('dashboard');
+  }
 }
 
 async function exportAllData() {
@@ -3291,6 +3419,13 @@ async function saveApiKey() {
   
   if (btn) { btn.disabled = false; btn.textContent = '💾 Zapisz i testuj'; }
 }
+
+document.addEventListener('click', (e) => {
+  const menu = document.getElementById('userMenu');
+  if (menu && !menu.contains(e.target)) {
+    document.getElementById('userDropdown')?.classList.remove('open');
+  }
+});
 
 document.addEventListener('DOMContentLoaded', () => {
   init().catch(err => {

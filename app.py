@@ -2465,6 +2465,39 @@ def api_account_switch():
     db.set("account_mode", new_mode)
     return jsonify({"success": True, "mode": new_mode})
 
+@app.route("/api/account/transfer", methods=["POST"])
+def api_account_transfer():
+    """Przelewa środki między kontami (używane przy przełączaniu DEMO/REAL)."""
+    data = request.get_json() or {}
+    amount = float(data.get("amount", 0))
+    direction = data.get("direction", "demo_to_real")
+    
+    if amount <= 0:
+        return err_resp("Nieprawidłowa kwota")
+    
+    demo = db.get("demo_bankroll", bankroll_default())
+    real = db.get("real_bankroll", bankroll_default())
+    
+    if direction == "demo_to_real":
+        if amount > demo.get("balance", 0):
+            amount = demo["balance"]  # Transfer all available
+        demo["balance"] = round(demo["balance"] - amount, 2)
+        real["balance"] = round(real["balance"] + amount, 2)
+        real["deposits"] = round(real.get("deposits", 0) + amount, 2)
+        if real["balance"] > real.get("peak_balance", 0):
+            real["peak_balance"] = real["balance"]
+    else:
+        if amount > real.get("balance", 0):
+            amount = real["balance"]
+        real["balance"] = round(real["balance"] - amount, 2)
+        demo["balance"] = round(demo["balance"] + amount, 2)
+        real["withdrawals"] = round(real.get("withdrawals", 0) + amount, 2)
+    
+    db.set("demo_bankroll", demo)
+    db.set("real_bankroll", real)
+    
+    return jsonify({"success": True, "amount": amount, "demo_balance": demo["balance"], "real_balance": real["balance"]})
+
 # ═══════════════════════════════════════════════════════════════════════
 #  DEPOSIT SYSTEM
 

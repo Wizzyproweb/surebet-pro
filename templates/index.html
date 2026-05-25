@@ -152,6 +152,22 @@
         <button class="btn-icon" onclick="fetchAllData();toast('Odświeżono','success',1000)" title="Odśwież">🔄</button>
         <button class="btn-icon" onclick="navigate('notifications')" title="Powiadomienia">🔔</button>
         <button class="btn-icon" id="modeToggleBtn" onclick="quickSwitchMode()" title="Przełącz DEMO/REAL">🎮</button>
+        <div class="user-menu" id="userMenu">
+          <button class="btn-icon user-btn" onclick="toggleUserMenu()" title="Konto" id="userMenuBtn">👤</button>
+          <div class="user-dropdown" id="userDropdown">
+            <div class="user-dropdown-header" id="userDropdownHeader">
+              <div style="font-size:14px;font-weight:600" id="userDisplayName">Gość</div>
+              <div style="font-size:11px;color:var(--text-muted)" id="userDisplayEmail"></div>
+            </div>
+            <div class="user-dropdown-divider"></div>
+            <div class="user-dropdown-item" id="userLoginBtn" onclick="showLoginModal()">🔑 Zaloguj</div>
+            <div class="user-dropdown-item" id="userRegisterBtn" onclick="showRegisterModal()">📝 Rejestracja</div>
+            <div class="user-dropdown-item" id="userDashboardLink" onclick="navigate('account');closeUserMenu()" style="display:none">👤 Moje konto</div>
+            <div class="user-dropdown-item" id="userDepositLink" onclick="navigate('deposit');closeUserMenu()" style="display:none">💳 Wpłata</div>
+            <div class="user-dropdown-divider" id="userLogoutDivider" style="display:none"></div>
+            <div class="user-dropdown-item" id="userLogoutBtn" onclick="logout()" style="display:none">🚪 Wyloguj</div>
+          </div>
+        </div>
         <button class="btn-icon" onclick="navigate('settings')" title="Ustawienia">⚙️</button>
       </div>
     </header>

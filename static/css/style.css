@@ -501,3 +501,24 @@ tr:hover td { background: rgba(255,255,255,0.02); }
 }
 
 /* ═══ PREVIEW BADGE ═══ */
+
+/* ═══ USER MENU ═══ */
+.user-menu { position: relative; display: inline-block; }
+.user-btn { position: relative; }
+.user-dropdown {
+  display: none; position: absolute; right: 0; top: calc(100% + 8px);
+  min-width: 220px; background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 14px; padding: 8px; z-index: 300;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.4); backdrop-filter: blur(20px);
+  animation: dropIn 0.2s ease;
+}
+.user-dropdown.open { display: block; }
+@keyframes dropIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+.user-dropdown-header { padding: 8px 12px; }
+.user-dropdown-divider { height: 1px; background: var(--border); margin: 4px 8px; }
+.user-dropdown-item {
+  padding: 10px 12px; cursor: pointer; border-radius: 10px; font-size: 13px;
+  color: var(--text-primary); transition: var(--transition); display: flex; align-items: center; gap: 8px;
+}
+.user-dropdown-item:hover { background: var(--primary-glow); color: var(--primary); }
+.user-dropdown-item:active { transform: scale(0.97); }
