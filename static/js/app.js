@@ -392,7 +392,11 @@ async function fetchSports() {
 
 // ═══ Quick account mode switch ════════════════════════════════
 
+let _switching = false;
+
 async function quickSwitchMode() {
+  if (_switching) return;
+  _switching = true;
   const newMode = accountMode === 'demo' ? 'real' : 'demo';
   // Instant visual feedback
   updateModeToggleUI(newMode);
@@ -416,33 +420,32 @@ async function quickSwitchMode() {
         acctBadge.style.color = r.mode === 'demo' ? 'var(--info)' : 'var(--profit)';
       }
       
-      // Fast refresh: only fetch bankroll + account status (2 calls instead of 11)
-      const [br, ac] = await Promise.all([
+      // Fast refresh: only fetch bankroll for display (2 calls instead of 11)
+      // IMPORTANT: realBalance/demoBalance come ONLY from switch response above
+      // to prevent mixing balances between modes
+      const [br] = await Promise.all([
         API.get('/api/bankroll').catch(() => null),
-        API.get('/api/account/status').catch(() => null),
       ]);
       
       if (br && br.success) {
         bankroll = br.bankroll || {};
-        // Update realBalance from fresh data
-        realBalance = bankroll.balance || bankroll.current_balance || realBalance;
-      }
-      if (ac && ac.success) {
-        demoBalance = ac.demo_balance;
-        realBalance = ac.real_balance;
       }
       
       // Smooth page refresh without full re-render - update only stats/balance
       refreshCurrentPageData();
       
       toast('Tryb: ' + (r.mode === 'demo' ? '🎮 DEMO' : '💵 REAL'), 'success', 1000);
+      _switching = false;
     } else {
       updateModeToggleUI(accountMode);
       toast('Błąd: ' + (r.error || 'nieznany'), 'error');
+      _switching = false;
     }
   } catch(e) { 
     updateModeToggleUI(accountMode);
     toast('Błąd sieci: ' + e.message, 'error'); 
+  } finally {
+    _switching = false;
   }
 }
 
@@ -577,22 +580,28 @@ async function init() {
   }
   navigate('dashboard');
   
-  updateTimer = setInterval(fetchAllData, 10000);
+  // Gentle timers with concurrent fetch guard
+  let _fetching = false;
+  updateTimer = setInterval(async () => {
+    if (_fetching) return;
+    _fetching = true;
+    try { await fetchAllData(); } catch(e) {}
+    _fetching = false;
+  }, 15000);  // 15s instead of 10s to reduce server load
+  
   notifTimer = setInterval(async () => {
     try {
       const n = await API.get('/api/notifications');
       if (n.success) { notifications = n.notifications || []; updateBadges(); }
     } catch(e) {}
-  }, 8000);
+  }, 12000);
   
-  // Auto-refresh value bets & multi market
-  setInterval(fetchValueBets, 15000);
-  setInterval(fetchMultiMarket, 20000);
-  setInterval(fetchDeposits, 30000);
-  setInterval(fetchInvestments, 30000);
-  
-  // Check for sound alerts
-  setInterval(checkNewSurebets, 12000);
+  // Less frequent background refreshes
+  setInterval(fetchValueBets, 30000);
+  setInterval(fetchMultiMarket, 45000);
+  setInterval(fetchDeposits, 60000);
+  setInterval(fetchInvestments, 60000);
+  setInterval(checkNewSurebets, 30000);
 }
 
 let lastSurebetCount = 0;
