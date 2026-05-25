@@ -1454,3 +1454,128 @@ tr:hover td { background: rgba(255,255,255,0.02); }
   background: var(--loss-bg);
   color: var(--loss);
 }
+
+
+/* ═══ PREMIUM MODE TOGGLE ═══ */
+.mode-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  padding: 3px 4px;
+  border-radius: 20px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  transition: all 0.3s var(--bounce);
+  user-select: none;
+  -webkit-user-select: none;
+  position: relative;
+}
+.mode-toggle:hover {
+  border-color: var(--primary);
+  box-shadow: 0 0 16px var(--primary-glow);
+  transform: scale(1.02);
+}
+.mode-toggle:active {
+  transform: scale(0.95);
+}
+.mode-toggle-track {
+  width: 36px;
+  height: 22px;
+  border-radius: 11px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  position: relative;
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+.mode-toggle-track::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, var(--info), var(--primary));
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  border-radius: 10px;
+}
+.mode-toggle.real .mode-toggle-track::before {
+  opacity: 1;
+}
+.mode-toggle-thumb {
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--bg-glass);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  transition: all 0.3s var(--bounce);
+  z-index: 2;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+.mode-toggle.real .mode-toggle-thumb {
+  left: 15px;
+  background: var(--profit-bg);
+  border-color: var(--profit);
+  box-shadow: 0 2px 8px var(--primary-glow);
+}
+.mode-toggle-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  min-width: 34px;
+  text-align: center;
+  transition: all 0.3s ease;
+  color: var(--text-muted);
+}
+.mode-toggle.real .mode-toggle-label {
+  color: var(--profit);
+}
+
+/* ═══ SMOOTH PAGE TRANSITIONS ═══ */
+.content-area > * {
+  animation: pageIn 0.3s ease;
+}
+@keyframes pageIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Faster loading spinner */
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 2px solid var(--border);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.5s linear infinite;
+}
+
+/* Smooth button transitions */
+.btn, .btn-icon, .nav-item, .stat-card, .surebet-card, .card {
+  will-change: transform;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* Reduced motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ═══ TOP BAR ACTIONS LAYOUT ═══ */
+.top-bar-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}

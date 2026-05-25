@@ -126,11 +126,6 @@
       <div class="connection-status">
         <span class="status-dot offline"></span>
         <span>Status: <span id="serverStatus">Ładowanie...</span></span>
-      <div style="margin-top:6px;display:flex;align-items:center;gap:8px;font-size:12px">
-        <span>Tryb:</span>
-        <span id="accountModeDisplay" style="font-weight:700;padding:2px 10px;border-radius:8px;background:var(--primary-glow);color:var(--primary)">🎮 DEMO</span>
-        <button class="btn-icon" style="width:28px;height:28px;font-size:12px" onclick="quickSwitchMode()" title="Przełącz">🔄</button>
-      </div>
       </div>
       <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:center;padding:4px 0">
         <button style="font-size:16px;cursor:pointer;background:none;border:none" onclick="setTheme('dark')" title="Ciemny">🌙</button>
@@ -153,7 +148,12 @@
       <div class="top-bar-actions">
         <button class="btn-icon" onclick="fetchAllData();toast('Odświeżono','success',1000)" title="Odśwież">🔄</button>
         <button class="btn-icon" onclick="navigate('notifications')" title="Powiadomienia">🔔</button>
-        <button class="btn-icon" id="modeToggleBtn" onclick="quickSwitchMode()" title="Przełącz DEMO/REAL">🎮</button>
+        <div class="mode-toggle" id="modeToggleContainer" onclick="quickSwitchMode()" title="Kliknij aby przełączyć">
+          <div class="mode-toggle-track">
+            <div class="mode-toggle-thumb" id="modeToggleThumb">🎮</div>
+          </div>
+          <span class="mode-toggle-label" id="modeToggleLabel">DEMO</span>
+        </div>
         <div class="user-menu" id="userMenu">
           <button class="btn-icon user-btn" onclick="toggleUserMenu()" title="Konto" id="userMenuBtn" style="background:var(--primary-glow);border-color:var(--primary);font-size:18px">👤</button>
           <div class="user-dropdown" id="userDropdown">

@@ -394,32 +394,52 @@ async function fetchSports() {
 
 async function quickSwitchMode() {
   const newMode = accountMode === 'demo' ? 'real' : 'demo';
+  // Show immediate visual feedback
+  updateModeToggleUI(newMode);
   try {
     const r = await API.post('/api/account/switch', { mode: newMode });
     if (r.success) {
       accountMode = r.mode;
       demoBalance = r.demo_balance;
       realBalance = r.real_balance;
-      const btn = document.getElementById('modeToggleBtn');
-      if (btn) {
-        btn.textContent = r.mode === 'demo' ? '🎮' : '💵';
-        btn.title = r.mode === 'demo' ? 'Przełącz na REAL' : 'Przełącz na DEMO';
-      }
-      const modeDisplay = document.getElementById('accountModeDisplay');
-      if (modeDisplay) modeDisplay.textContent = r.mode === 'demo' ? '🎮 DEMO' : '💵 REAL';
+      updateModeToggleUI(r.mode);
       const acctBadge = document.getElementById('accountBadge');
       if (acctBadge) {
         acctBadge.textContent = r.mode === 'demo' ? 'DEMO' : 'REAL';
         acctBadge.style.display = 'inline';
+        acctBadge.style.background = r.mode === 'demo' ? 'var(--info-bg)' : 'var(--profit-bg)';
+        acctBadge.style.color = r.mode === 'demo' ? 'var(--info)' : 'var(--profit)';
       }
       await fetchAllData();
       if (typeof PAGES !== 'undefined' && PAGES[currentPage]) {
         const area = document.getElementById('contentArea');
-        PAGES[currentPage].render(area);
+        try { PAGES[currentPage].render(area); } catch(e) { navigate('dashboard'); }
       }
-      toast('Tryb: ' + (r.mode === 'demo' ? '🎮 DEMO' : '💵 REAL'), 'success', 2000);
+      toast('Tryb: ' + (r.mode === 'demo' ? '🎮 DEMO' : '💵 REAL'), 'success', 1500);
+    } else {
+      updateModeToggleUI(accountMode);
     }
-  } catch(e) { toast('Błąd przełączania: ' + e.message, 'error'); }
+  } catch(e) { 
+    updateModeToggleUI(accountMode);
+    toast('Błąd przełączania: ' + e.message, 'error'); 
+  }
+}
+
+function updateModeToggleUI(mode) {
+  const container = document.getElementById('modeToggleContainer');
+  const thumb = document.getElementById('modeToggleThumb');
+  const label = document.getElementById('modeToggleLabel');
+  if (container) {
+    if (mode === 'real') {
+      container.classList.add('real');
+      container.title = 'Kliknij aby przełączyć na DEMO';
+    } else {
+      container.classList.remove('real');
+      container.title = 'Kliknij aby przełączyć na REAL';
+    }
+  }
+  if (thumb) thumb.textContent = mode === 'demo' ? '🎮' : '💵';
+  if (label) label.textContent = mode === 'demo' ? 'DEMO' : 'REAL';
 }
 
 async function checkAccountMode() {
@@ -429,19 +449,7 @@ async function checkAccountMode() {
       accountMode = r.mode;
       demoBalance = r.demo_balance;
       realBalance = r.real_balance;
-      const btn = document.getElementById('modeToggleBtn');
-      if (btn) {
-        btn.textContent = r.mode === 'demo' ? '🎮' : '💵';
-        btn.title = r.mode === 'demo' ? 'Przełącz na REAL' : 'Przełącz na DEMO';
-        btn.style.background = r.mode === 'demo' ? 'var(--info-bg)' : 'var(--profit-bg)';
-        btn.style.borderColor = r.mode === 'demo' ? 'var(--info)' : 'var(--profit)';
-      }
-      const modeDisplay = document.getElementById('accountModeDisplay');
-      if (modeDisplay) {
-        modeDisplay.textContent = r.mode === 'demo' ? '🎮 DEMO' : '💵 REAL';
-        modeDisplay.style.background = r.mode === 'demo' ? 'var(--info-bg)' : 'var(--profit-bg)';
-        modeDisplay.style.color = r.mode === 'demo' ? 'var(--info)' : 'var(--profit)';
-      }
+      updateModeToggleUI(r.mode);
       const acctBadge = document.getElementById('accountBadge');
       if (acctBadge) {
         acctBadge.textContent = r.mode === 'demo' ? 'DEMO' : 'REAL';
@@ -519,13 +527,8 @@ async function init() {
   await Promise.all([fetchAllData(), fetchBets(), fetchAccounts(), fetchSports(), fetchValueBets(), fetchMultiMarket()]);
   await checkAccountMode();
   updateUserMenu();
-  // Update mode display in sidebar and badges
-  const modeDisplay = document.getElementById('accountModeDisplay');
-  if (modeDisplay) {
-    modeDisplay.textContent = accountMode === 'demo' ? '🎮 DEMO' : '💵 REAL';
-    modeDisplay.style.background = accountMode === 'demo' ? 'var(--info-bg)' : 'var(--profit-bg)';
-    modeDisplay.style.color = accountMode === 'demo' ? 'var(--info)' : 'var(--profit)';
-  }
+  // Update mode display
+  updateModeToggleUI(accountMode);
   const acctBadge = document.getElementById('accountBadge');
   if (acctBadge) {
     acctBadge.textContent = accountMode === 'demo' ? 'DEMO' : 'REAL';
