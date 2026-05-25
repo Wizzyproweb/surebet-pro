@@ -394,15 +394,20 @@ async function fetchSports() {
 
 async function quickSwitchMode() {
   const newMode = accountMode === 'demo' ? 'real' : 'demo';
-  // Show immediate visual feedback
+  // Instant visual feedback
   updateModeToggleUI(newMode);
+  
   try {
+    // Just switch mode on server - lightweight, single call
     const r = await API.post('/api/account/switch', { mode: newMode });
+    
     if (r.success) {
       accountMode = r.mode;
       demoBalance = r.demo_balance;
       realBalance = r.real_balance;
       updateModeToggleUI(r.mode);
+      
+      // Update sidebar badge
       const acctBadge = document.getElementById('accountBadge');
       if (acctBadge) {
         acctBadge.textContent = r.mode === 'demo' ? 'DEMO' : 'REAL';
@@ -410,18 +415,52 @@ async function quickSwitchMode() {
         acctBadge.style.background = r.mode === 'demo' ? 'var(--info-bg)' : 'var(--profit-bg)';
         acctBadge.style.color = r.mode === 'demo' ? 'var(--info)' : 'var(--profit)';
       }
-      await fetchAllData();
-      if (typeof PAGES !== 'undefined' && PAGES[currentPage]) {
-        const area = document.getElementById('contentArea');
-        try { PAGES[currentPage].render(area); } catch(e) { navigate('dashboard'); }
+      
+      // Fast refresh: only fetch bankroll + account status (2 calls instead of 11)
+      const [br, ac] = await Promise.all([
+        API.get('/api/bankroll').catch(() => null),
+        API.get('/api/account/status').catch(() => null),
+      ]);
+      
+      if (br && br.success) {
+        bankroll = br.bankroll || {};
+        // Update realBalance from fresh data
+        realBalance = bankroll.balance || bankroll.current_balance || realBalance;
       }
-      toast('Tryb: ' + (r.mode === 'demo' ? '🎮 DEMO' : '💵 REAL'), 'success', 1500);
+      if (ac && ac.success) {
+        demoBalance = ac.demo_balance;
+        realBalance = ac.real_balance;
+      }
+      
+      // Smooth page refresh without full re-render - update only stats/balance
+      refreshCurrentPageData();
+      
+      toast('Tryb: ' + (r.mode === 'demo' ? '🎮 DEMO' : '💵 REAL'), 'success', 1000);
     } else {
       updateModeToggleUI(accountMode);
+      toast('Błąd: ' + (r.error || 'nieznany'), 'error');
     }
   } catch(e) { 
     updateModeToggleUI(accountMode);
-    toast('Błąd przełączania: ' + e.message, 'error'); 
+    toast('Błąd sieci: ' + e.message, 'error'); 
+  }
+}
+
+function refreshCurrentPageData() {
+  // After mode switch, always go to dashboard - it's the safest page
+  // and shows the correct balance for the active mode
+  const area = document.getElementById('contentArea');
+  if (area) {
+    // Smooth transition with brief loading state
+    area.innerHTML = '<div class="loading" style="padding:20px"><div class="spinner"></div></div>';
+    setTimeout(() => {
+      currentPage = 'dashboard';
+      document.querySelectorAll('.nav-item').forEach(n => {
+        n.classList.toggle('active', n.dataset.page === 'dashboard');
+      });
+      document.getElementById('pageTitle').textContent = 'Dashboard';
+      renderDashboard(area);
+    }, 200);
   }
 }
 
