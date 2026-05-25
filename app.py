@@ -2147,6 +2147,10 @@ def api_bankroll():
 def api_deposit():
     amt = float((request.get_json() or {}).get("amount",0))
     if amt<=0: return err_resp("Nieprawidłowa kwota")
+    # Deposit only works in REAL mode
+    mode = db.get("account_mode", "demo")
+    if mode != "real":
+        return err_resp("Wpłaty dostępne tylko w trybie REAL. Przełącz na REAL.")
     bk = get_active_bankroll()
     bk["balance"] = round(bk.get("balance",0)+amt,2)
     bk["deposits"] = round(bk.get("deposits",0)+amt,2)
@@ -2160,6 +2164,9 @@ def api_deposit():
 def api_withdraw():
     amt = float((request.get_json() or {}).get("amount",0))
     if amt<=0: return err_resp("Nieprawidłowa kwota")
+    mode = db.get("account_mode", "demo")
+    if mode != "real":
+        return err_resp("Wypłaty dostępne tylko w trybie REAL. Przełącz na REAL.")
     bk = get_active_bankroll()
     if amt > bk.get("balance",0): return err_resp("Niewystarczające środki")
     bk["balance"] = round(bk.get("balance",0)-amt,2); bk["withdrawals"] = round(bk.get("withdrawals",0)+amt,2)

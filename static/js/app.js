@@ -433,6 +433,21 @@ async function checkAccountMode() {
       if (btn) {
         btn.textContent = r.mode === 'demo' ? '🎮' : '💵';
         btn.title = r.mode === 'demo' ? 'Przełącz na REAL' : 'Przełącz na DEMO';
+        btn.style.background = r.mode === 'demo' ? 'var(--info-bg)' : 'var(--profit-bg)';
+        btn.style.borderColor = r.mode === 'demo' ? 'var(--info)' : 'var(--profit)';
+      }
+      const modeDisplay = document.getElementById('accountModeDisplay');
+      if (modeDisplay) {
+        modeDisplay.textContent = r.mode === 'demo' ? '🎮 DEMO' : '💵 REAL';
+        modeDisplay.style.background = r.mode === 'demo' ? 'var(--info-bg)' : 'var(--profit-bg)';
+        modeDisplay.style.color = r.mode === 'demo' ? 'var(--info)' : 'var(--profit)';
+      }
+      const acctBadge = document.getElementById('accountBadge');
+      if (acctBadge) {
+        acctBadge.textContent = r.mode === 'demo' ? 'DEMO' : 'REAL';
+        acctBadge.style.display = 'inline';
+        acctBadge.style.background = r.mode === 'demo' ? 'var(--info-bg)' : 'var(--profit-bg)';
+        acctBadge.style.color = r.mode === 'demo' ? 'var(--info)' : 'var(--profit)';
       }
     }
   } catch(e) {}
@@ -504,6 +519,20 @@ async function init() {
   await Promise.all([fetchAllData(), fetchBets(), fetchAccounts(), fetchSports(), fetchValueBets(), fetchMultiMarket()]);
   await checkAccountMode();
   updateUserMenu();
+  // Update mode display in sidebar and badges
+  const modeDisplay = document.getElementById('accountModeDisplay');
+  if (modeDisplay) {
+    modeDisplay.textContent = accountMode === 'demo' ? '🎮 DEMO' : '💵 REAL';
+    modeDisplay.style.background = accountMode === 'demo' ? 'var(--info-bg)' : 'var(--profit-bg)';
+    modeDisplay.style.color = accountMode === 'demo' ? 'var(--info)' : 'var(--profit)';
+  }
+  const acctBadge = document.getElementById('accountBadge');
+  if (acctBadge) {
+    acctBadge.textContent = accountMode === 'demo' ? 'DEMO' : 'REAL';
+    acctBadge.style.display = 'inline';
+    acctBadge.style.background = accountMode === 'demo' ? 'var(--info-bg)' : 'var(--profit-bg)';
+    acctBadge.style.color = accountMode === 'demo' ? 'var(--info)' : 'var(--profit)';
+  }
   navigate('dashboard');
   
   updateTimer = setInterval(fetchAllData, 10000);
@@ -1306,17 +1335,27 @@ async function saveAutoBetConfig() {
 
 function renderBankroll(area) {
   const bal = bankroll.current_balance || 0;
+  const bkBal = bankroll.bookmaker_balance || 0;
+  const totalWithBk = bankroll.total_with_bookmakers || bal;
   const init = bankroll.initial_balance || 10000;
   const change = bal - init;
+  const totalChange = (totalWithBk || bal) - init;
   const chgPct = init > 0 ? ((change/init)*100).toFixed(2) : 0;
   const peak = bankroll.peak_balance || bal;
   const dd = peak > 0 ? ((peak - bal) / peak * 100).toFixed(1) : 0;
   
-  let h = `<div class="page-header"><div><h2>🏦 Bankroll</h2></div></div>
+  let h = `<div class="page-header"><div><h2>🏦 Portfel</h2>
+    <div class="subtitle">${accountMode === 'real' ? '💵 Tryb REAL' : '🎮 Tryb DEMO'}</div></div></div>
   <div class="stats-grid">
     <div class="stat-card"><div class="stat-icon">💰</div>
       <div class="stat-value ${change>=0?'profit':'loss'}">${fmtCurr(bal)}</div>
       <div class="stat-label">Stan konta</div></div>
+    ${accountMode === 'real' && bkBal > 0 ? `<div class="stat-card"><div class="stat-icon">🏢</div>
+      <div class="stat-value profit">${fmtCurr(bkBal)}</div>
+      <div class="stat-label">Konta BK</div></div>
+    <div class="stat-card"><div class="stat-icon">💎</div>
+      <div class="stat-value profit">${fmtCurr(totalWithBk)}</div>
+      <div class="stat-label">Łącznie z BK</div></div>` : ''}
     <div class="stat-card"><div class="stat-icon">📈</div>
       <div class="stat-value ${change>=0?'profit':'loss'}">${fmtCurr(change)}</div>
       <div class="stat-label">Zmiana</div></div>
@@ -1365,24 +1404,25 @@ async function loadTransactions() {
 }
 
 async function deposit() {
+  if (accountMode !== 'real') { toast('⚠️ Wpłaty działają tylko w trybie REAL. Przełącz na REAL.', 'warning', 4000); return; }
   const amt = parseFloat(document.getElementById('txnAmt')?.value);
   if (!amt || amt <= 0) { toast('Podaj kwotę', 'error'); return; }
   try {
     const r = await API.post('/api/bankroll/deposit', {amount: amt});
-    if (r.success) { toast(`💰 Wpłacono ${fmtCurr(amt)}`, 'success'); bankroll = r.bankroll; loadTransactions(); renderBankroll(document.getElementById('contentArea')); }
-  } catch(e) { toast('Błąd', 'error'); }
+    if (r.success) { toast('💰 Wpłacono ' + fmtCurr(amt), 'success'); bankroll = r.bankroll; realBalance = r.bankroll.balance || r.bankroll.current_balance; loadTransactions(); renderBankroll(document.getElementById('contentArea')); }
+  } catch(e) { toast('Błąd serwera: ' + e.message, 'error'); }
 }
 
 async function withdraw() {
+  if (accountMode !== 'real') { toast('⚠️ Wypłaty działają tylko w trybie REAL. Przełącz na REAL.', 'warning', 4000); return; }
   const amt = parseFloat(document.getElementById('txnAmt')?.value);
   if (!amt || amt <= 0) { toast('Podaj kwotę', 'error'); return; }
   try {
     const r = await API.post('/api/bankroll/withdraw', {amount: amt});
-    if (r.success) { toast(`💸 Wypłacono ${fmtCurr(amt)}`, 'success'); bankroll = r.bankroll; loadTransactions(); renderBankroll(document.getElementById('contentArea')); }
-    else toast(`❌ ${r.error}`, 'error');
-  } catch(e) { toast('Błąd', 'error'); }
+    if (r.success) { toast('💸 Wypłacono ' + fmtCurr(amt), 'success'); bankroll = r.bankroll; realBalance = r.bankroll.balance || r.bankroll.current_balance; loadTransactions(); renderBankroll(document.getElementById('contentArea')); }
+    else toast('❌ ' + r.error, 'error');
+  } catch(e) { toast('Błąd serwera: ' + e.message, 'error'); }
 }
-
 // ═══ CALCULATOR ══════════════════════════════════════════════════════
 
 function renderCalculator(area) {
