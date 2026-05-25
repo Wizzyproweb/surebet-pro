@@ -153,7 +153,7 @@
         <button class="btn-icon" onclick="navigate('notifications')" title="Powiadomienia">🔔</button>
         <button class="btn-icon" id="modeToggleBtn" onclick="quickSwitchMode()" title="Przełącz DEMO/REAL">🎮</button>
         <div class="user-menu" id="userMenu">
-          <button class="btn-icon user-btn" onclick="toggleUserMenu()" title="Konto" id="userMenuBtn">👤</button>
+          <button class="btn-icon user-btn" onclick="toggleUserMenu()" title="Konto" id="userMenuBtn" style="background:var(--primary-glow);border-color:var(--primary);font-size:18px">👤</button>
           <div class="user-dropdown" id="userDropdown">
             <div class="user-dropdown-header" id="userDropdownHeader">
               <div style="font-size:14px;font-weight:600" id="userDisplayName">Gość</div>
@@ -168,6 +168,7 @@
             <div class="user-dropdown-item" id="userLogoutBtn" onclick="logout()" style="display:none">🚪 Wyloguj</div>
           </div>
         </div>
+        <button class="btn-icon" onclick="navigate('deposit');toast('💳 Wpłać środki na konto REAL','info',2000)" title="Wpłata">💳</button>
         <button class="btn-icon" onclick="navigate('settings')" title="Ustawienia">⚙️</button>
       </div>
     </header>
