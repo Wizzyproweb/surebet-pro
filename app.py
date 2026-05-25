@@ -2462,24 +2462,8 @@ def api_account_status():
 def api_account_switch():
     data = request.get_json() or {}
     new_mode = data.get("mode", "demo")
-    auto_transfer = data.get("auto_transfer", False)
     if new_mode not in ("demo", "real"):
         return err_resp("Nieprawidłowy tryb")
-    
-    # Auto-transfer demo balance to real when switching to real
-    if new_mode == "real" and auto_transfer:
-        demo = db.get("demo_bankroll", bankroll_default())
-        real = db.get("real_bankroll", bankroll_default())
-        demo_bal = demo.get("balance", 0)
-        if demo_bal > 0:
-            real["balance"] = round(real.get("balance", 0) + demo_bal, 2)
-            real["deposits"] = round(real.get("deposits", 0) + demo_bal, 2)
-            if real["balance"] > real.get("peak_balance", 0):
-                real["peak_balance"] = real["balance"]
-            demo["balance"] = 0.0
-            db.set("demo_bankroll", demo)
-            db.set("real_bankroll", real)
-    
     db.set("account_mode", new_mode)
     demo = db.get("demo_bankroll", bankroll_default())
     real = db.get("real_bankroll", bankroll_default())
@@ -2487,7 +2471,6 @@ def api_account_switch():
         "success": True, "mode": new_mode,
         "demo_balance": demo.get("balance", 0),
         "real_balance": real.get("balance", 0),
-        "transferred": auto_transfer and new_mode == "real"
     })
 
 @app.route("/api/account/transfer", methods=["POST"])
