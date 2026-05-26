@@ -2563,19 +2563,26 @@ async function switchAccount() {
 // ═══ DEPOSITS ════════════════════════════════════════════════════════
 
 function renderDeposit(area) {
-  let h = `
-  <div class="page-header"><div><h2>💳 Wpłata środków</h2>
-    <div class="subtitle">Zasil konto REAL, aby rozpocząć obstawianie</div></div></div>
+  const isReal = accountMode === 'real';
+  let h = '<div class="page-header"><div><h2>💳 Wpłata środków</h2><div class="subtitle">' + (isReal ? 'Zasil konto REAL i rozpocznij obstawianie' : 'Przełącz na REAL aby wpłacać środki') + '</div></div></div>';
   
-  <div class="card" style="margin-bottom:16px">
-    <div class="card-header"><h3>💰 Stan konta REAL</h3></div>
-    <div class="card-body">
-      <div style="text-align:center;padding:12px">
-        <div style="font-size:36px;font-weight:700">${fmtCurr(realBalance)}</div>
-        <div style="font-size:12px;color:var(--text-secondary)">Dostępne środki</div>
-      </div>
-    </div>
-  </div>
+  // Mode warning banner if in DEMO
+  if (!isReal) {
+    h += '<div class="card" style="margin-bottom:16px;border:2px solid var(--warning);background:var(--warning-bg)"><div class="card-body" style="text-align:center;padding:16px"><div style="font-size:32px;margin-bottom:8px">🎮</div><div style="font-size:16px;font-weight:700;margin-bottom:4px">Tryb DEMO</div><div style="font-size:13px;color:var(--text-secondary);margin-bottom:12px">Wpłaty działają tylko w trybie REAL. Przełącz aby zasilić konto prawdziwymi środkami.</div><button class="btn btn-primary" onclick="quickSwitchMode()">🔄 Przełącz na REAL</button></div></div>';
+  }
+  
+  h += '<div class="card" style="margin-bottom:16px"><div class="card-header"><h3>💰 Stan konta</h3></div><div class="card-body"><div style="display:flex;align-items:center;gap:16px;padding:8px 0">' +
+    '<div style="flex:1;text-align:center"><div style="font-size:28px;font-weight:700;color:' + (isReal ? 'var(--profit)' : 'var(--text-muted)') + '">' + fmtCurr(isReal ? realBalance : demoBalance) + '</div><div style="font-size:11px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px">' + (isReal ? '💵 REAL' : '🎮 DEMO') + '</div></div>' +
+    '<div style="width:1px;height:40px;background:var(--border)"></div>' +
+    '<div style="flex:1;text-align:center"><div style="font-size:28px;font-weight:700;color:var(--profit)">' + fmtCurr(realBalance) + '</div><div style="font-size:11px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px">💵 REAL</div></div>' +
+    '</div></div></div>';
+
+  // Quick amount buttons
+  h += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">';
+  [50, 100, 200, 500, 1000].forEach(amt => {
+    h += '<button class="btn btn-sm btn-secondary" style="flex:1;min-width:60px" onclick="document.getElementById(\'depositAmount\').value=' + amt + ';document.getElementById(\'depositAmount\').dispatchEvent(new Event(\'input\'))">' + amt + ' PLN</button>';
+  });
+  h += '</div>';
 
   <div id="depositMethods" style="margin-bottom:16px">
     <div class="subheader">Wybierz metodę płatności</div>
@@ -2680,6 +2687,7 @@ async function loadDepositHistory() {
 }
 
 function selectDepositMethod(methodId) {
+  if (accountMode !== 'real') { toast('⚠️ Przełącz na REAL aby wpłacać środki', 'warning', 4000); return; }
   const el = document.getElementById('depositForm');
   el.style.display = 'block';
   
@@ -2809,14 +2817,14 @@ async function processStripePayment() {
   }
 }
 
-async function processDeposit(methodId) {
+async async function processDeposit(methodId) {
+  if (accountMode !== 'real') { toast('⚠️ Wpłaty działają tylko w trybie REAL', 'warning'); return; }
   const amount = parseFloat(document.getElementById('depositAmount')?.value);
   if (!amount || amount <= 0) { toast('Podaj kwotę', 'error'); return; }
   
   const btn = event.target;
   btn.disabled = true;
   btn.textContent = '⏳ Przetwarzanie...';
-  toast('Przetwarzanie wpłaty...', 'info', 5000);
   
   try {
     const r = await API.post('/api/deposit/create', { method_id: methodId, amount });
@@ -2825,61 +2833,26 @@ async function processDeposit(methodId) {
     
     if (r.success) {
       if (r.deposit?.payment_data?.blik_code) {
-        openModal(`
-          <div class="modal-header"><h3>💳 Kod BLIK</h3>
-            <button class="modal-close" onclick="closeModal()">✕</button></div>
-          <div style="text-align:center;padding:20px">
-            <div style="font-size:48px;margin-bottom:12px">${r.deposit.method_icon || '💳'}</div>
-            <div style="font-size:32px;font-weight:700;letter-spacing:8px;color:var(--primary)">
-              ${r.deposit.payment_data.blik_code}
-            </div>
-            <div style="margin-top:12px;font-size:12px;color:var(--text-secondary)">
-              Wprowadź kod w aplikacji bankowej. Ważny: ${r.deposit.payment_data.expires_in}
-            </div>
-          </div>
-        `);
+        openModal('<div class="modal-header"><h3>💳 Kod BLIK</h3><button class="modal-close" onclick="closeModal()">✕</button></div><div style="text-align:center;padding:20px"><div style="font-size:48px;margin-bottom:12px">' + (r.deposit.method_icon || '💳') + '</div><div style="font-size:32px;font-weight:700;letter-spacing:8px;color:var(--primary)">' + r.deposit.payment_data.blik_code + '</div><div style="margin-top:12px;font-size:12px;color:var(--text-secondary)">Wprowadź kod w aplikacji bankowej. Ważny: ' + r.deposit.payment_data.expires_in + '</div></div>');
       } else if (r.deposit?.payment_data?.account_number) {
-        openModal(`
-          <div class="modal-header"><h3>🏦 Przelew bankowy</h3>
-            <button class="modal-close" onclick="closeModal()">✕</button></div>
-          <div style="padding:16px">
-            <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">Numer konta:</div>
-            <div style="font-size:14px;font-weight:600;background:var(--bg-secondary);padding:10px;border-radius:8px;word-break:break-all">
-              ${r.deposit.payment_data.account_number}
-            </div>
-            <div style="font-size:12px;color:var(--text-muted);margin-top:12px">Tytuł przelewu:</div>
-            <div style="font-weight:600;font-size:13px">${r.deposit.payment_data.title}</div>
-            <div style="margin-top:16px;font-size:12px;color:var(--text-secondary)">Kwota: ${fmtCurr(r.deposit.amount)}</div>
-          </div>
-        `);
+        openModal('<div class="modal-header"><h3>🏦 Przelew bankowy</h3><button class="modal-close" onclick="closeModal()">✕</button></div><div style="padding:16px"><div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">Numer konta:</div><div style="font-size:14px;font-weight:600;background:var(--bg-secondary);padding:10px;border-radius:8px;word-break:break-all">' + r.deposit.payment_data.account_number + '</div><div style="font-size:12px;color:var(--text-muted);margin-top:12px">Tytuł przelewu:</div><div style="font-weight:600;font-size:13px">' + r.deposit.payment_data.title + '</div><div style="margin-top:16px;font-size:12px;color:var(--text-secondary)">Kwota: ' + fmtCurr(r.deposit.amount) + '</div></div>');
       } else if (r.deposit?.payment_data?.address) {
-        openModal(`
-          <div class="modal-header"><h3>₿ Adres portfela</h3>
-            <button class="modal-close" onclick="closeModal()">✕</button></div>
-          <div style="padding:16px;text-align:center">
-            <div style="font-size:40px;margin-bottom:8px">${methodId.includes('btc') ? '₿' : '⟠'}</div>
-            <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px">Wyślij dokładnie ${fmtCurr(r.deposit.amount)} na adres:</div>
-            <div style="font-size:11px;background:var(--bg-secondary);padding:10px;border-radius:8px;word-break:break-all;font-family:monospace">
-              ${r.deposit.payment_data.address}
-            </div>
-            <div style="margin-top:12px;font-size:11px;color:var(--text-muted)">Sieć: ${r.deposit.payment_data.network}</div>
-          </div>
-        `);
+        openModal('<div class="modal-header"><h3>' + (methodId.includes('btc') ? '₿' : '⟠') + ' Adres portfela</h3><button class="modal-close" onclick="closeModal()">✕</button></div><div style="padding:16px;text-align:center"><div style="font-size:40px;margin-bottom:8px">' + (methodId.includes('btc') ? '₿' : '⟠') + '</div><div style="font-size:11px;color:var(--text-muted);margin-bottom:8px">Wyślij dokładnie ' + fmtCurr(r.deposit.amount) + ' na adres:</div><div style="font-size:11px;background:var(--bg-secondary);padding:10px;border-radius:8px;word-break:break-all;font-family:monospace">' + r.deposit.payment_data.address + '</div><div style="margin-top:12px;font-size:11px;color:var(--text-muted)">Sieć: ' + (r.deposit.payment_data.network || '') + '</div></div>');
       } else {
-        toast(`✅ ${r.message || 'Wpłata udana!'}`, 'success', 4000);
+        toast('✅ ' + (r.message || 'Wpłata udana!'), 'success', 4000);
       }
       
-      realBalance = r.new_balance;
-      await Promise.all([loadDepositHistory(), fetchAllData()]);
-      document.getElementById('depositForm').style.display = 'none';
-      
+      realBalance = r.new_balance || realBalance;
+      await Promise.all([loadDepositHistory(), fetchAllData().catch(() => {})]);
+      const df = document.getElementById('depositForm');
+      if (df) df.style.display = 'none';
     } else {
-      toast(`❌ ${r.message || 'Wpłata odrzucona'}`, 'error');
+      toast('❌ ' + (r.message || r.error || 'Wpłata odrzucona'), 'error');
     }
   } catch(e) {
     btn.disabled = false;
     btn.textContent = '💳 Wpłać środki';
-    toast('Błąd serwera', 'error');
+    toast('❌ Błąd serwera: ' + e.message, 'error');
   }
 }
 
@@ -3199,23 +3172,25 @@ function selectWithdrawMethod(methodId, methodName, methodIcon) {
   el.scrollIntoView({behavior:'smooth'});
 }
 
-async function processWithdraw(methodId) {
+async async function processWithdraw(methodId) {
+  if (accountMode !== 'real') { toast('⚠️ Wypłaty działają tylko w trybie REAL', 'warning'); return; }
   const amount = parseFloat(document.getElementById('withdrawAmount')?.value);
   const account = document.getElementById('withdrawAccount')?.value?.trim();
   if (!amount || amount <= 0) { toast('Podaj kwotę', 'error'); return; }
   if (!account) { toast('Podaj dane do wypłaty', 'error'); return; }
   
-  const btn = event.target; btn.disabled = true; btn.textContent = '⏳...';
+  const btn = event.target; btn.disabled = true; btn.textContent = '⏳ Przetwarzanie...';
   try {
     const r = await API.post('/api/withdraw/create', { method_id: methodId, amount, account_details: account });
     btn.disabled = false; btn.textContent = '💸 Wypłać środki';
     if (r.success) {
-      toast(`✅ ${r.message}`, 'success', 4000);
+      toast('✅ ' + (r.message || 'Wniosek przyjęty!'), 'success', 4000);
       realBalance = r.new_balance;
       await loadWithdrawHistory();
-      document.getElementById('withdrawForm').style.display = 'none';
-    } else toast(`❌ ${r.error}`, 'error');
-  } catch(e) { btn.disabled = false; btn.textContent = '💸 Wypłać środki'; toast('Błąd', 'error'); }
+      const wf = document.getElementById('withdrawForm');
+      if (wf) wf.style.display = 'none';
+    } else toast('❌ ' + (r.error || 'Błąd'), 'error');
+  } catch(e) { btn.disabled = false; btn.textContent = '💸 Wypłać środki'; toast('❌ Błąd: ' + e.message, 'error'); }
 }
 
 async function loadWithdrawHistory() {

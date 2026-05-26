@@ -2592,6 +2592,11 @@ def api_deposit_create():
     if amount <= 0:
         return err_resp("Nieprawidłowa kwota")
     
+    # Only REAL mode can create deposits
+    mode = db.get("account_mode", "demo")
+    if mode != "real":
+        return err_resp("Wpłaty dostępne tylko w trybie REAL. Przełącz na REAL.")
+    
     method = next((m for m in PAYMENT_METHODS if m["id"] == method_id), None)
     if not method:
         return err_resp("Nieprawidłowa metoda płatności")
@@ -2698,6 +2703,11 @@ def api_deposit_confirm():
     data = request.get_json() or {}
     deposit_id = data.get("deposit_id", "")
     
+    # Only REAL mode
+    mode = db.get("account_mode", "demo")
+    if mode != "real":
+        return err_resp("Wpłaty dostępne tylko w trybie REAL.")
+    
     if not deposit_id:
         return err_resp("Brak ID wpłaty")
     
@@ -2714,11 +2724,10 @@ def api_deposit_confirm():
     deposit["status"] = "completed"
     deposit["confirmed_at"] = datetime.now().isoformat()
     
-    # NOW add money to bankroll
+    # NOW add money to REAL bankroll (deposits always go to REAL)
     amount = deposit["amount"]
     net_amount = deposit["net_amount"]
-    mode = db.get("account_mode", "demo")
-    bk_key = f"{mode}_bankroll"
+    bk_key = "real_bankroll"
     bk = db.get(bk_key, bankroll_default())
     bk["balance"] = round(bk.get("balance", 0) + net_amount, 2)
     bk["deposits"] = round(bk.get("deposits", 0) + amount, 2)
@@ -2741,26 +2750,6 @@ def api_deposit_confirm():
     db.set("transactions", txns[:200])
     
     return jsonify({"success": True, "message": "Wpłata potwierdzona!", "new_balance": bk["balance"]})
-    
-    # Add transaction
-    txns = db.get("transactions", [])
-    txns.insert(0, {
-        "id": str(uuid.uuid4())[:8], "type": "deposit",
-        "amount": net_amount, "fee": fee,
-        "method": method["name"],
-        "timestamp": datetime.now().isoformat(),
-        "description": f"Wpłata {amount} PLN przez {method['name']} (netto: {net_amount} PLN)",
-    })
-    db.set("transactions", txns[:200])
-    
-    mode = db.get("account_mode", "demo")
-    return jsonify({
-        "success": success,
-        "deposit": deposit,
-        "new_balance": db.get(f"{mode}_bankroll", {}).get("balance", 0),
-        "message": f"Wpłacono {net_amount} PLN przez {method['name']} na konto {mode}" if success else "Płatność odrzucona",
-        "account_mode": mode,
-    })
 
 @app.route("/api/deposit/history")
 def api_deposit_history():
@@ -2802,6 +2791,11 @@ def api_withdraw_create():
     
     if amount <= 0:
         return err_resp("Nieprawidłowa kwota")
+    
+    # Only REAL mode
+    mode = db.get("account_mode", "demo")
+    if mode != "real":
+        return err_resp("Wypłaty dostępne tylko w trybie REAL. Przełącz na REAL.")
     
     method = next((m for m in WITHDRAWAL_METHODS if m["id"] == method_id), None)
     if not method:
