@@ -1270,7 +1270,7 @@ class AdvancedSurebetEngine:
             matches.append(m)
         return matches
     
-    def update_opportunities(self):
+    def update_opportunities(self, force_simulated=False):
         while self.running:
             try:
                 settings = db.get("settings", {})
@@ -1989,6 +1989,10 @@ def api_surebets():
                "sort": request.args.get("sort","profit"),
                "limit": request.args.get("limit",50,type=int)}
     surebets = engine.get_surebets(filters)
+    # If no surebets yet, force-generate some simulated ones
+    if not surebets:
+        engine.update_opportunities(force_simulated=True)
+        surebets = engine.get_surebets(filters)
     if filters["limit"]: surebets = surebets[:filters["limit"]]
     return jsonify({"success":True,"count":len(surebets),"surebets":surebets,
                     "last_update":engine.last_update.isoformat() if engine.last_update else None})
@@ -2443,7 +2447,8 @@ def api_sports():
 
 @app.route("/")
 def index():
-    resp = render_template("index.html")
+    from flask import make_response
+    resp = make_response(render_template("index.html"))
     resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     resp.headers["Pragma"] = "no-cache"
     resp.headers["Expires"] = "0"
@@ -2452,8 +2457,9 @@ def index():
 @app.route("/static/<path:filename>")
 def static_files(filename):
     import os as _os
+    from flask import make_response
     static_dir = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "static")
-    resp = send_from_directory(static_dir, filename)
+    resp = make_response(send_from_directory(static_dir, filename))
     resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     resp.headers["Pragma"] = "no-cache"
     resp.headers["Expires"] = "0"
