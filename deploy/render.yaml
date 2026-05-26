@@ -3,7 +3,8 @@ services:
     name: surebet-pro
     env: python
     buildCommand: pip install flask gunicorn
-    startCommand: gunicorn wsgi:application --bind 0.0.0.0:10000 --workers 1 --threads 4
+    startCommand: gunicorn wsgi:application --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 120 --keep-alive 5
+    healthCheckPath: /api/ping
     envVars:
       - key: PYTHON_VERSION
         value: 3.12.0
