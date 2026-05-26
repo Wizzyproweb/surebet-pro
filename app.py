@@ -521,15 +521,20 @@ def get_bookmaker_total_balance():
     return total
 
 def get_active_bankroll():
-    """Zwraca aktywny bankroll (demo lub realny) z uwzględnieniem kont BK."""
+    """Zwraca aktywny bankroll (demo lub realny) z uwzględnieniem kont BK.
+    Ważne: Nigdy nie miesza sald DEMO z REAL."""
     mode = db.get("account_mode", "demo")
     if mode == "real":
-        bk = db.get("real_bankroll", db.get("bankroll", {}))
+        bk = db.get("real_bankroll", bankroll_default())
         bk = dict(bk)
         bk["bookmaker_balances"] = get_bookmaker_total_balance()
         bk["total_balance"] = round(bk.get("balance", 0) + bk["bookmaker_balances"], 2)
         return bk
-    return db.get("demo_bankroll", db.get("bankroll", {}))
+    bk = db.get("demo_bankroll", bankroll_default())
+    bk = dict(bk) if isinstance(bk, dict) else bankroll_default()
+    bk["bookmaker_balances"] = 0
+    bk["total_balance"] = bk.get("balance", 0)
+    return bk
 
 def update_bankroll(updates):
     """Aktualizuje aktywny bankroll."""
@@ -2437,13 +2442,22 @@ def api_sports():
 # ═══════════════════════════════════════════════════════════════════════
 
 @app.route("/")
-def index(): return render_template("index.html")
+def index():
+    resp = render_template("index.html")
+    resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    resp.headers["Pragma"] = "no-cache"
+    resp.headers["Expires"] = "0"
+    return resp
 
 @app.route("/static/<path:filename>")
 def static_files(filename):
     import os as _os
     static_dir = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "static")
-    return send_from_directory(static_dir, filename)
+    resp = send_from_directory(static_dir, filename)
+    resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    resp.headers["Pragma"] = "no-cache"
+    resp.headers["Expires"] = "0"
+    return resp
 
 @app.route("/service-worker.js")
 def service_worker():
