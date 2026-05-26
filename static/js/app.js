@@ -52,18 +52,43 @@ async function savePaymentKeys() {
   }
 }
 
+// Cache for API GET responses (30s TTL)
+const _apiCache = {};
+const _apiCacheTTL = 30000; // 30 seconds
+
 const API = {
   async get(path, timeout = 10000) {
+    // Return cached response if fresh
+    const cached = _apiCache[path];
+    if (cached && Date.now() - cached.ts < _apiCacheTTL) {
+      return cached.data;
+    }
+    
     const c = new AbortController();
     const t = setTimeout(() => c.abort(), timeout);
     try {
       const r = await fetch(path, { signal: c.signal });
       clearTimeout(t);
-      return r.json();
+      const data = await r.json();
+      // Cache successful GET responses
+      if (data && data.success !== false) {
+        _apiCache[path] = { data, ts: Date.now() };
+      }
+      return data;
     } catch(e) {
       clearTimeout(t);
+      // Try to return stale cache on error
+      if (_apiCache[path]) {
+        console.warn('API error, using stale cache for:', path);
+        return _apiCache[path].data;
+      }
       throw e.name === 'AbortError' ? new Error('Timeout') : e;
     }
+  },
+  // Force refresh a cached endpoint
+  async getFresh(path, timeout = 10000) {
+    delete _apiCache[path];
+    return API.get(path, timeout);
   },
   async post(path, body = {}, timeout = 15000) {
     const c = new AbortController();
@@ -74,11 +99,22 @@ const API = {
         body: JSON.stringify(body), signal: c.signal
       });
       clearTimeout(t);
-      return r.json();
+      const data = await r.json();
+      // Invalidate GET cache for related paths
+      for (const key in _apiCache) {
+        if (key.startsWith(path.replace(/\/\w+$/, '')) || key === path) {
+          delete _apiCache[key];
+        }
+      }
+      return data;
     } catch(e) {
       clearTimeout(t);
       throw e.name === 'AbortError' ? new Error('Timeout') : e;
     }
+  },
+  // Clear entire cache
+  clearCache() {
+    for (const key in _apiCache) delete _apiCache[key];
   }
 };
 
@@ -304,7 +340,7 @@ function updateUserMenu() {
 
 async function fetchAllData() {
   try {
-    const [sd, bd, rd, nd, st, es, od, mr, ac, em] = await Promise.all([
+    const [sd, bd, rd, nd, st, es, od, mr, ac, em, dp, wp, inv, tx] = await Promise.all([
       API.get('/api/surebets?limit=50'),
       API.get('/api/bookmakers'),
       API.get('/api/bankroll'),
@@ -315,6 +351,10 @@ async function fetchAllData() {
       API.get('/api/bookmakers/ranking'),
       API.get('/api/account/status'),
       API.get('/api/engine/message'),
+      API.get('/api/deposit/history').catch(() => ({success:true, deposits:[]})),
+      API.get('/api/withdraw/history').catch(() => ({success:true, withdrawals:[]})),
+      API.get('/api/investment/portfolio').catch(() => ({success:true})),
+      API.get('/api/transactions').catch(() => ({success:true, transactions:[]})),
     ]);
     if (sd.success) surebets = sd.surebets || [];
     if (bd.success) bookmakers = bd.bookmakers || {};
@@ -322,9 +362,7 @@ async function fetchAllData() {
     if (nd.success) notifications = nd.notifications || [];
     if (st.success) { stats = st.statistics || {}; dailyChart = st.daily_chart || []; }
     if (es.success) engineStats = es.stats || {};
-    // Store empty message for display
     window.engineMessage = em?.message || null;
-    // Update connection status with data source info
     const ds = document.getElementById('dataSourceBadge');
     if (ds && engineStats.data_source_label) ds.textContent = engineStats.data_source_label;
     if (od.success) oddsHistory = od.history || [];
@@ -334,6 +372,10 @@ async function fetchAllData() {
       demoBalance = ac.demo_balance;
       realBalance = ac.real_balance;
     }
+    if (dp.success) depositHistory = dp.deposits || [];
+    if (wp.success) withdrawHistory = wp.withdrawals || [];
+    if (inv.success) portfolio = inv.portfolio || inv;
+    if (tx.success && tx.transactions) window._allTransactions = tx.transactions;
     updateBadges();
     updateConnectionStatus();
   } catch(e) {}
@@ -420,9 +462,10 @@ async function quickSwitchMode() {
         acctBadge.style.color = r.mode === 'demo' ? 'var(--info)' : 'var(--profit)';
       }
       
-      // Fast refresh: only fetch bankroll for display (2 calls instead of 11)
-      // IMPORTANT: realBalance/demoBalance come ONLY from switch response above
-      // to prevent mixing balances between modes
+      // Clear stale cache since mode changed
+      API.clearCache();
+      
+      // Fast refresh: only fetch bankroll for display
       const [br] = await Promise.all([
         API.get('/api/bankroll').catch(() => null),
       ]);
@@ -599,8 +642,6 @@ async function init() {
   // Less frequent background refreshes
   setInterval(fetchValueBets, 30000);
   setInterval(fetchMultiMarket, 45000);
-  setInterval(fetchDeposits, 60000);
-  setInterval(fetchInvestments, 60000);
   setInterval(checkNewSurebets, 30000);
 }
 
@@ -1437,20 +1478,34 @@ function renderBankroll(area) {
 }
 
 async function loadTransactions() {
-  try {
-    const d = await API.get('/api/transactions?limit=20');
-    const el = document.getElementById('txnList');
-    if (!el || !d.success) return;
-    if (!d.transactions?.length) { el.innerHTML = `<div style="text-align:center;padding:20px;color:var(--text-muted)">Brak transakcji</div>`; return; }
-    el.innerHTML = d.transactions.map(t => `
-      <div class="list-item">
-        <div class="li-icon">${t.type==='deposit'?'💰':'💸'}</div>
-        <div class="li-content"><div class="li-title">${t.type==='deposit'?'Wpłata':'Wypłata'}</div>
+  const el = document.getElementById('txnList');
+  if (!el) return;
+  // Use cached data if available (from fetchAllData)
+  const cached = window._allTransactions;
+  if (cached && cached.length > 0) {
+    const recent = cached.slice(0, 20);
+    el.innerHTML = recent.map(t => {
+      const isDep = t.type === 'deposit' || (t.amount > 0 && t.type !== 'withdrawal');
+      return `<div class="list-item">
+        <div class="li-icon">${isDep ? '💰' : '💸'}</div>
+        <div class="li-content"><div class="li-title">${isDep ? 'Wpłata' : 'Wypłata'}</div>
           <div class="li-subtitle">${fmtDate(t.timestamp)}</div></div>
         <div class="li-extra">
-          <div class="li-value ${t.type==='deposit'?'amount positive':'amount negative'}">${t.type==='deposit'?'+':'-'}${fmtCurr(t.amount)}</div>
+          <div class="li-value ${isDep ? 'amount positive' : 'amount negative'}">${isDep ? '+' : '-'}${fmtCurr(t.amount)}</div>
           <div style="font-size:11px;color:var(--text-muted)">${fmtCurr(t.balance_after)}</div></div>
-      </div>`).join('');
+      </div>`;
+    }).join('');
+    return;
+  }
+  // Fallback: fetch from API
+  try {
+    const d = await API.get('/api/transactions?limit=20');
+    if (!el || !d.success) return;
+    if (!d.transactions?.length) { el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-muted)">Brak transakcji</div>'; return; }
+    el.innerHTML = d.transactions.map(t => {
+      const isDep = t.type === 'deposit' || (t.amount > 0 && t.type !== 'withdrawal');
+      return '<div class="list-item"><div class="li-icon">' + (isDep ? '💰' : '💸') + '</div><div class="li-content"><div class="li-title">' + (isDep ? 'Wpłata' : 'Wypłata') + '</div><div class="li-subtitle">' + fmtDate(t.timestamp) + '</div></div><div class="li-extra"><div class="li-value ' + (isDep ? 'amount positive' : 'amount negative') + '">' + (isDep ? '+' : '-') + fmtCurr(t.amount) + '</div><div style="font-size:11px;color:var(--text-muted)">' + fmtCurr(t.balance_after) + '</div></div></div>';
+    }).join('');
   } catch(e) {}
 }
 
@@ -1460,7 +1515,13 @@ async function deposit() {
   if (!amt || amt <= 0) { toast('Podaj kwotę', 'error'); return; }
   try {
     const r = await API.post('/api/bankroll/deposit', {amount: amt});
-    if (r.success) { toast('💰 Wpłacono ' + fmtCurr(amt), 'success'); bankroll = r.bankroll; realBalance = r.bankroll.balance || r.bankroll.current_balance; loadTransactions(); renderBankroll(document.getElementById('contentArea')); }
+    if (r.success) {
+      bankroll = r.bankroll;
+      realBalance = r.bankroll.balance || r.bankroll.current_balance;
+      API.clearCache();
+      // Gentle refresh: update state then toast
+      toast('💰 Wpłacono ' + fmtCurr(amt), 'success');
+    }
   } catch(e) { toast('Błąd serwera: ' + e.message, 'error'); }
 }
 
@@ -1470,7 +1531,12 @@ async function withdraw() {
   if (!amt || amt <= 0) { toast('Podaj kwotę', 'error'); return; }
   try {
     const r = await API.post('/api/bankroll/withdraw', {amount: amt});
-    if (r.success) { toast('💸 Wypłacono ' + fmtCurr(amt), 'success'); bankroll = r.bankroll; realBalance = r.bankroll.balance || r.bankroll.current_balance; loadTransactions(); renderBankroll(document.getElementById('contentArea')); }
+    if (r.success) {
+      bankroll = r.bankroll;
+      realBalance = r.bankroll.balance || r.bankroll.current_balance;
+      API.clearCache();
+      toast('💸 Wypłacono ' + fmtCurr(amt), 'success');
+    }
     else toast('❌ ' + r.error, 'error');
   } catch(e) { toast('Błąd serwera: ' + e.message, 'error'); }
 }
@@ -1867,7 +1933,7 @@ function renderNotifications(area) {
 }
 
 async function markAllRead() {
-  try { await API.post('/api/notifications/read', {id:'all'}); notifications.forEach(n=>n.read=true); updateBadges(); renderNotifications(document.getElementById('contentArea')); toast('✅ Oznaczono', 'success'); }
+  try { await API.post('/api/notifications/read', {id:'all'}); notifications.forEach(n=>n.read=true); updateBadges(); toast('✅ Oznaczono', 'success'); }
   catch(e) { toast('Błąd', 'error'); }
 }
 
