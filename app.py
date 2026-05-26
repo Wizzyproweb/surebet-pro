@@ -1957,7 +1957,7 @@ class ExportEngine:
 
 def json_resp(data, status=200):
     return jsonify(data), status
-def err_resp(msg, status=400):
+def err_resp(msg, status=200):
     return jsonify({"success": False, "error": msg}), status
 
 @app.route("/api/ping")
@@ -2166,7 +2166,7 @@ def api_withdraw():
     if amt<=0: return err_resp("Nieprawidłowa kwota")
     mode = db.get("account_mode", "demo")
     if mode != "real":
-        return err_resp("Wypłaty dostępne tylko w trybie REAL. Przełącz na REAL.")
+        return err_resp("Wypłaty dostępne tylko w trybie REAL. Przełącz na REAL.", 200)
     bk = get_active_bankroll()
     if amt > bk.get("balance",0): return err_resp("Niewystarczające środki")
     bk["balance"] = round(bk.get("balance",0)-amt,2); bk["withdrawals"] = round(bk.get("withdrawals",0)+amt,2)
@@ -2706,7 +2706,7 @@ def api_deposit_confirm():
     # Only REAL mode
     mode = db.get("account_mode", "demo")
     if mode != "real":
-        return err_resp("Wpłaty dostępne tylko w trybie REAL.")
+        return err_resp("Wpłaty dostępne tylko w trybie REAL.", 200)
     
     if not deposit_id:
         return err_resp("Brak ID wpłaty")
@@ -2795,7 +2795,7 @@ def api_withdraw_create():
     # Only REAL mode
     mode = db.get("account_mode", "demo")
     if mode != "real":
-        return err_resp("Wypłaty dostępne tylko w trybie REAL. Przełącz na REAL.")
+        return err_resp("Wypłaty dostępne tylko w trybie REAL. Przełącz na REAL.", 200)
     
     method = next((m for m in WITHDRAWAL_METHODS if m["id"] == method_id), None)
     if not method:
@@ -3264,7 +3264,7 @@ def api_investment_create():
     
     # Check account mode
     if db.get("account_mode") != "real":
-        return err_resp("Inwestycje dostępne tylko w trybie REAL. Przełącz konto na real.")
+        return err_resp("Inwestycje dostępne tylko w trybie REAL. Przełącz konto na real.", 200)
     
     result = invest_engine.create_investment(plan_id, amount)
     return jsonify(result)

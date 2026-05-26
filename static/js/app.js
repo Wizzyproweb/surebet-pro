@@ -473,8 +473,10 @@ async function quickSwitchMode() {
         acctBadge.style.color = r.mode === 'demo' ? 'var(--info)' : 'var(--profit)';
       }
       
-      // Clear stale cache since mode changed
+      // Clear ALL cached data since mode changed
       API.clearCache();
+      // Also clear local state
+      surebets = []; valueBets = []; multiMarket = [];
       
       // Fast refresh: only fetch bankroll for display
       const [br] = await Promise.all([
@@ -616,7 +618,29 @@ function sportIcon(s) {
 
 async function init() {
   const savedUser = localStorage.getItem('sb-user');
+  const savedSession = localStorage.getItem('sb-session');
   if (savedUser) currentUser = savedUser;
+  
+  // Auto-login with saved session
+  if (savedSession) {
+    try {
+      const me = await API.get('/api/auth/me');
+      if (me.logged_in) {
+        currentUser = me.user;
+        localStorage.setItem('sb-user', me.user);
+      } else {
+        // Try to restore session
+        const loginR = await API.post('/api/auth/login', {
+          username: savedUser,
+          password: localStorage.getItem('sb-pass') || ''
+        });
+        if (loginR.success) {
+          currentUser = savedUser;
+          localStorage.setItem('sb-session', loginR.session_id);
+        }
+      }
+    } catch(e) {}
+  }
   const savedTheme = localStorage.getItem('sb-theme');
   if (savedTheme) document.documentElement.setAttribute('data-theme', savedTheme);
   
@@ -2584,6 +2608,7 @@ function renderDeposit(area) {
   });
   h += '</div>';
 
+  h += `
   <div id="depositMethods" style="margin-bottom:16px">
     <div class="subheader">Wybierz metodę płatności</div>
     <div class="loading"><div class="spinner"></div></div>
@@ -2817,14 +2842,13 @@ async function processStripePayment() {
   }
 }
 
-async async function processDeposit(methodId) {
+async function processDeposit(methodId) {
   if (accountMode !== 'real') { toast('⚠️ Wpłaty działają tylko w trybie REAL', 'warning'); return; }
   const amount = parseFloat(document.getElementById('depositAmount')?.value);
   if (!amount || amount <= 0) { toast('Podaj kwotę', 'error'); return; }
   
-  const btn = event.target;
-  btn.disabled = true;
-  btn.textContent = '⏳ Przetwarzanie...';
+  var btn = event && event.target || document.querySelector('#depositForm .btn-primary');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Przetwarzanie...'; }
   
   try {
     const r = await API.post('/api/deposit/create', { method_id: methodId, amount });
@@ -3143,6 +3167,7 @@ async function loadWithdrawMethods() {
 }
 
 function selectWithdrawMethod(methodId, methodName, methodIcon) {
+  if (accountMode !== 'real') { toast('⚠️ Wypłaty działają tylko w trybie REAL', 'warning'); return; }
   const el = document.getElementById('withdrawForm');
   el.style.display = 'block';
   
@@ -3172,7 +3197,7 @@ function selectWithdrawMethod(methodId, methodName, methodIcon) {
   el.scrollIntoView({behavior:'smooth'});
 }
 
-async async function processWithdraw(methodId) {
+async function processWithdraw(methodId) {
   if (accountMode !== 'real') { toast('⚠️ Wypłaty działają tylko w trybie REAL', 'warning'); return; }
   const amount = parseFloat(document.getElementById('withdrawAmount')?.value);
   const account = document.getElementById('withdrawAccount')?.value?.trim();
