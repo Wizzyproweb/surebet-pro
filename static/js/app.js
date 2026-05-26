@@ -340,7 +340,7 @@ function updateUserMenu() {
 
 async function fetchAllData() {
   try {
-    const [sd, bd, rd, nd, st, es, od, mr, ac, em, dp, wp, inv, tx] = await Promise.all([
+    const [sd, bd, rd, nd, st, es, od, mr, ac, em, dp, wp, inv, tx, ab, dm, wm, ip, sec] = await Promise.all([
       API.get('/api/surebets?limit=50'),
       API.get('/api/bookmakers'),
       API.get('/api/bankroll'),
@@ -355,6 +355,11 @@ async function fetchAllData() {
       API.get('/api/withdraw/history').catch(() => ({success:true, withdrawals:[]})),
       API.get('/api/investment/portfolio').catch(() => ({success:true})),
       API.get('/api/transactions').catch(() => ({success:true, transactions:[]})),
+      API.get('/api/autobet/status').catch(() => ({success:true})),
+      API.get('/api/deposit/methods').catch(() => ({success:true, methods:[]})),
+      API.get('/api/withdraw/methods').catch(() => ({success:true, methods:[]})),
+      API.get('/api/investment/plans').catch(() => ({success:true, plans:[]})),
+      API.get('/api/account/security/status').catch(() => ({success:true})),
     ]);
     if (sd.success) surebets = sd.surebets || [];
     if (bd.success) bookmakers = bd.bookmakers || {};
@@ -376,6 +381,12 @@ async function fetchAllData() {
     if (wp.success) withdrawHistory = wp.withdrawals || [];
     if (inv.success) portfolio = inv.portfolio || inv;
     if (tx.success && tx.transactions) window._allTransactions = tx.transactions;
+    // Cache additional data for instant page loads
+    if (ab.success) window._autobetStatus = ab;
+    if (dm.success) window._depositMethods = dm.methods || [];
+    if (wm.success) window._withdrawMethods = wm.methods || [];
+    if (ip.success) window._investmentPlans = ip.plans || [];
+    if (sec.success) window._securityStatus = sec;
     updateBadges();
     updateConnectionStatus();
   } catch(e) {}
@@ -1365,36 +1376,45 @@ function renderAutoBet(area) {
 }
 
 async function loadAutoBetStatus() {
+  const cached = window._autobetStatus;
+  if (cached && cached.config) {
+    updateAutoBetUI(cached);
+    return;
+  }
   try {
     const d = await API.get('/api/autobet/status');
     if (!d.success) return;
-    const cfg = d.config;
-    document.getElementById('abToggle').checked = d.running;
-    document.getElementById('abMaxStake').value = cfg.max_stake_per_bet || 200;
-    document.getElementById('abMinProfit').value = cfg.min_profit || 1;
-    document.getElementById('abMaxConc').value = cfg.max_concurrent || 3;
-    document.getElementById('abStrategy').value = cfg.strategy || 'balanced';
-    document.getElementById('abUseKelly').checked = cfg.use_kelly || false;
-    document.getElementById('abKellyFrac').value = cfg.kelly_fraction || 0.25;
-    if (cfg.use_kelly) document.getElementById('kellyOpts').style.display = 'block';
-    
-    document.getElementById('abStatusLabel').textContent = d.running ? '🤖 Auto-Bet 🟢 AKTYWNY' : '🤖 Auto-Bet 🔴 WYŁĄCZONY';
-    document.getElementById('abStatusDetail').textContent = d.running
-      ? `Obstawiono: ${d.total_auto_bets} zakładów • ${d.recent_bets_1h} w ostatniej godzinie`
-      : 'Kliknij przełącznik aby włączyć automatyczne obstawianie';
-    
-    document.getElementById('abStats').innerHTML = `
-      <div class="stats-grid">
-        <div class="stat-card"><div class="stat-icon">📊</div>
-          <div class="stat-value">${d.total_auto_bets}</div><div class="stat-label">Wszystkie zakłady</div></div>
-        <div class="stat-card"><div class="stat-icon">⏰</div>
-          <div class="stat-value">${d.recent_bets_1h}</div><div class="stat-label">Zakłady (1h)</div></div>
-        <div class="stat-card"><div class="stat-icon">${d.running?'🟢':'🔴'}</div>
-          <div class="stat-value">${d.running?'Aktywny':'Wyłączony'}</div><div class="stat-label">Status</div></div>
-      </div>`;
+    window._autobetStatus = d;
+    updateAutoBetUI(d);
   } catch(e) {}
 }
 
+function updateAutoBetUI(d) {
+  if (!d || !d.config) return;
+  const cfg = d.config;
+  const f1 = document.getElementById('abToggle');
+  if (f1) f1.checked = d.running;
+  const f2 = document.getElementById('abMaxStake');
+  if (f2) f2.value = cfg.max_stake_per_bet || 200;
+  const f3 = document.getElementById('abMinProfit');
+  if (f3) f3.value = cfg.min_profit || 1;
+  const f4 = document.getElementById('abMaxConc');
+  if (f4) f4.value = cfg.max_concurrent || 3;
+  const f5 = document.getElementById('abStrategy');
+  if (f5) f5.value = cfg.strategy || 'balanced';
+  const f6 = document.getElementById('abUseKelly');
+  if (f6) f6.checked = cfg.use_kelly || false;
+  const f7 = document.getElementById('abKellyFrac');
+  if (f7) f7.value = cfg.kelly_fraction || 0.25;
+  const ko = document.getElementById('kellyOpts');
+  if (ko) ko.style.display = cfg.use_kelly ? 'block' : 'none';
+  const sl = document.getElementById('abStatusLabel');
+  if (sl) sl.textContent = d.running ? '🤖 Auto-Bet \uD83D\uDFE2 AKTYWNY' : '🤖 Auto-Bet \uD83D\uDD34 WY\u0141\u0104CZONY';
+  const sd = document.getElementById('abStatusDetail');
+  if (sd) sd.textContent = d.running ? 'Obstawiono: ' + d.total_auto_bets + ' zak\u0142ad\u00F3w \u2022 ' + d.recent_bets_1h + ' w ostatniej godzinie' : 'Kliknij prze\u0142\u0105cznik aby w\u0142\u0105czy\u0107 automatyczne obstawianie';
+  const st = document.getElementById('abStats');
+  if (st) st.innerHTML = '<div class="stats-grid"><div class="stat-card"><div class="stat-icon">\uD83D\uDCCA</div><div class="stat-value">' + d.total_auto_bets + '</div><div class="stat-label">Wszystkie zak\u0142ady</div></div><div class="stat-card"><div class="stat-icon">\u23F0</div><div class="stat-value">' + d.recent_bets_1h + '</div><div class="stat-label">Zak\u0142ady (1h)</div></div><div class="stat-card"><div class="stat-icon">' + (d.running ? '\uD83D\uDFE2' : '\uD83D\uDD34') + '</div><div class="stat-value">' + (d.running ? 'Aktywny' : 'Wy\u0142\u0105czony') + '</div><div class="stat-label">Status</div></div></div>';
+}
 function toggleKellyOpts() {
   document.getElementById('kellyOpts').style.display = document.getElementById('abUseKelly').checked ? 'block' : 'none';
 }
@@ -2070,8 +2090,10 @@ async function loadAlertConfig() {
   try {
     const d = await API.get('/api/notifications/config');
     if (d.success) {
-      document.getElementById('sndEnabled').checked = d.config.sound_enabled !== false;
-      document.getElementById('vibEnabled').checked = d.config.vibration_enabled !== false;
+      const snd = document.getElementById('sndEnabled');
+      if (snd) snd.checked = d.config.sound_enabled !== false;
+      const vib = document.getElementById('vibEnabled');
+      if (vib) vib.checked = d.config.vibration_enabled !== false;
     }
   } catch(e) {}
 }
@@ -2574,6 +2596,12 @@ function renderDeposit(area) {
 
 async function loadDepositMethods() {
   try {
+  const cached = window._depositMethods;
+  if (cached && cached.length > 0) {
+    renderDepositMethodsCached(cached);
+    return;
+  }
+
     const d = await API.get('/api/deposit/methods');
     if (!d.success) return;
     
@@ -2614,6 +2642,23 @@ async function loadDepositMethods() {
   }
 }
 
+
+function renderDepositMethodsCached(methods) {
+  const el = document.getElementById('depositMethods');
+  if (!el) return;
+  const popular = methods.filter(m => m.popular);
+  const others = methods.filter(m => !m.popular);
+  let html = '<div class="subheader">\u2B50 Popularne</div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:16px">';
+  popular.forEach(m => {
+    html += '<div class="card" style="cursor:pointer;text-align:center;padding:14px" onclick=\"selectDepositMethod(\'' + m.id + '\')\"><div style="font-size:28px;margin-bottom:6px">' + m.icon + '</div><div style="font-weight:600;font-size:13px">' + m.name + '</div><div style="font-size:10px;color:var(--text-secondary)">od ' + m.min + ' do ' + m.max + ' PLN</div><div style="font-size:10px;color:var(--profit)">' + (m.fee === 0 ? 'Bez prowizji' : m.fee*100 + '% prowizji') + '</div><div style="font-size:10px;color:var(--text-muted)">\u23F1 ' + m.time + '</div></div>';
+  });
+  html += '</div><div class="subheader">\uD83D\uDD39 Pozosta\u0142e</div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px">';
+  others.forEach(m => {
+    html += '<div class="card" style="cursor:pointer;text-align:center;padding:14px" onclick=\"selectDepositMethod(\'' + m.id + '\')\"><div style="font-size:28px;margin-bottom:6px">' + m.icon + '</div><div style="font-weight:600;font-size:13px">' + m.name + '</div><div style="font-size:10px;color:var(--text-secondary)">min ' + m.min + ' PLN</div><div style="font-size:10px;color:var(--text-muted)">\u23F1 ' + m.time + '</div></div>';
+  });
+  html += '</div>';
+  el.innerHTML = html;
+}
 async function loadDepositHistory() {
   try {
     const d = await API.get('/api/deposit/history');
@@ -2878,6 +2923,13 @@ function renderInvestments(area) {
 
 async function loadInvestmentPlans() {
   try {
+  const cached = window._investmentPlans;
+  if (cached && cached.length > 0) {
+    investmentPlans = cached;
+    renderInvestmentPlans(cached);
+    return;
+  }
+
     const d = await API.get('/api/investment/plans');
     if (!d.success) return;
     const plans = d.plans || [];
@@ -2935,6 +2987,25 @@ async function loadInvestmentPlans() {
   }
 }
 
+
+function renderInvestmentPlans(plans) {
+  const el = document.getElementById('investmentPlans');
+  if (!el) return;
+  if (plans.length === 0) {
+    el.innerHTML = '<div style="text-align:center;padding:16px;color:var(--text-muted)">Brak plan\u00F3w</div>';
+    return;
+  }
+  const riskColors = { 'bardzo niski': 'var(--profit)', 'niski': 'var(--info)', '\u015Bredni': 'var(--warning)', 'wysoki': 'var(--loss)' };
+  let html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px">';
+  plans.forEach(p => {
+    const dailyReturn = p.daily_roi;
+    const monthlyReturn = (dailyReturn * 30).toFixed(1);
+    const totalReturn = ((1 + dailyReturn/100) ** p.duration_days - 1) * 100;
+    html += '<div class="card" style="display:flex;flex-direction:column"><div style="text-align:center;padding:12px 0;border-bottom:1px solid var(--border)"><div style="font-size:32px;margin-bottom:4px">' + (p.risk === 'bardzo niski' ? '\uD83C\uDFE6' : p.risk === 'niski' ? '\uD83D\uDFE2' : p.risk === '\u015Bredni' ? '\uD83D\uDFE1' : '\uD83D\uDD34') + '</div><div style="font-weight:700;font-size:16px">' + p.name + '</div><div style="font-size:11px;color:var(--text-secondary)">' + p.description + '</div></div><div style="padding:12px;flex:1"><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px;margin-bottom:10px"><div><div style="color:var(--text-muted)">Dzienny ROI</div><div style="font-weight:600;color:var(--profit)">+' + dailyReturn + '%</div></div><div><div style="color:var(--text-muted)">Miesi\u0119czny ROI</div><div style="font-weight:600;color:var(--profit)">~' + monthlyReturn + '%</div></div><div><div style="color:var(--text-muted)">Ca\u0142kowity zwrot</div><div style="font-weight:700;color:var(--profit)">+' + totalReturn.toFixed(0) + '%</div></div><div><div style="color:var(--text-muted)">Ryzyko</div><div style="font-weight:600;color:' + (riskColors[p.risk] || 'var(--text-secondary)') + '">' + p.risk.toUpperCase() + '</div></div></div><div style="font-size:11px;color:var(--text-muted);margin-bottom:8px">Okres: ' + p.duration_days + ' dni</div></div></div>';
+  });
+  html += '</div>';
+  el.innerHTML = html;
+}
 async function loadPortfolio() {
   try {
     const d = await API.get('/api/investment/portfolio');
